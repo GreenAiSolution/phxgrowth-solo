@@ -32,6 +32,26 @@ echo "${dim}Your key goes from your clipboard into .env and to Stripe. Nothing e
 echo ""
 
 # ---------------------------------------------------------------- the key ---
+#
+# A hidden prompt needs a real keyboard. Run through anything that pipes stdin
+# — Claude Code's `!` prefix, a CI step, `sh script < /dev/null` — and `read`
+# gets EOF immediately, the key is empty, and without this check the script
+# marches on to complain that "" is not a valid Stripe key. That message sends
+# you looking at your key when the problem is the terminal.
+if [[ ! -t 0 ]]; then
+  cat <<'NOTTY'
+This needs a real terminal — it can't read a hidden password through a pipe.
+
+Open Terminal (Cmd+Space, type "Terminal") and run:
+
+    cd ~/Addtophxgrowth && ./scripts/connect-stripe.sh
+
+Nothing you type there is recorded anywhere, which is the other reason to
+run it from there rather than through a chat window.
+NOTTY
+  exit 1
+fi
+
 printf "Paste your Stripe secret key (input is hidden): "
 read -rs KEY
 echo ""
