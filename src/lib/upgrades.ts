@@ -1,48 +1,49 @@
 /**
- * The upgrade catalogue.
+ * The seat catalogue.
  *
  * DIRECTION
  *   This site is not an agency and does not sell a growth programme.
  *   PHX/GROWTH does that at phxgrowth.com — "the autonomous media buyer that
- *   flies your ad spend to profit" — with three à la carte services and three
- *   managed flight plans on top of them.
+ *   flies your ad spend to profit."
  *
- *   PHX/GROWTH PLUS sells one thing: specialised upgrades that bolt onto those
- *   services. Every upgrade names the service it attaches to, because an
- *   upgrade that attaches to nothing is a second agency in disguise.
+ *   Their Agents page states the offer in one sentence: "10 operators. Three
+ *   ways to hire them." Pilot, Squadron, Fleet Command. This property sells
+ *   the fourth way — one operator, one price, month to month — and it exists
+ *   because of a specific asymmetry rather than a gap in their catalogue.
+ *
+ *   PHX/GROWTH is a media buying desk, so every tier is bundled by how much
+ *   spend the operators are steering. That is the correct way to sell a media
+ *   desk. It also means four operators whose work never touches an ad account
+ *   are only reachable at $30,000 a month.
  *
  * THE RULES
- *   1. ATTACHED. Every upgrade names a real PHX/GROWTH service.
- *   2. ADDITIVE vs THE SERVICE. No upgrade may sell something that service
- *      already lists. `PARENT_SERVICES[].includes` is a verbatim copy of their
- *      own bullet list and `upgrades.test.ts` reads it.
- *   3. ADDITIVE vs THE ROSTER. No upgrade may sell what one of the ten named
- *      operators already does. This rule earned its place immediately: an
- *      AI-search upgrade, a map-pack upgrade, a reviews upgrade and a
- *      multi-channel inbox upgrade all turned out to be Herald, Echo and
- *      Closer's day jobs, and all four were cut. Selling a client something
- *      they already pay for is the fastest way to lose both the sale and the
- *      relationship, and the only reliable defence is a machine check.
- *
- *   The surviving upgrades are deliberately few. A short honest list beats a
- *   long one with four duplicates in it.
+ *   1. NO SPEND, NO SEAT. A seat may only exist for an operator that does
+ *      useful work with zero ad budget behind it. Six of the ten fail this and
+ *      live in `LOCKED`, each with its reason and the tier that unlocks it.
+ *   2. NEVER UNDERCUT THE DESK. Where the parent sells the same job à la
+ *      carte, the seat carries the parent's published price rather than a
+ *      cheaper one. Closer is $995/mo because phxgrowth.com/pricing lists AI
+ *      Phone Agents "from $995/mo".
+ *   3. SAY WHAT IT WON'T DO. Every seat carries a `wont` line.
+ *   4. TALK THEM OUT OF IT. Where a parent tier is better value the page says
+ *      so and links there. `checkSeats()` is that rule in code, and two of its
+ *      six verdicts route revenue off this property on purpose.
  *
  * THE 2027 FILTER
- *   Only work whose demand is visibly rising into 2027 belongs here, and each
- *   entry says *why* in `demandCase` — a mechanism, not a slogan. Three shifts
- *   everything is downstream of:
+ *   Unpaid demand is the whole thesis, and rule 1 is what produces it rather
+ *   than a slogan chosen afterwards. Paid acquisition keeps getting more
+ *   expensive and less measurable as third-party signal degrades; the
+ *   customers a business does not pay for — the search it ranks for, the
+ *   reviews that carry it, the call it actually answers — are the ones whose
+ *   economics improve while everyone else's decay. Every operator that
+ *   survives rule 1 is on that side of the line, because an operator that
+ *   needs no ad budget is definitionally an operator working unpaid demand.
  *
- *     1. Answers replaced links. Buyers get a recommendation from an assistant
- *        instead of ten blue links, so being the source it quotes is a
- *        different job from ranking.
- *     2. Signal loss. Tracking built on third-party cookies keeps degrading, so
- *        measurement has to move onto data the business owns.
- *     3. Response time became the product. When every competitor advertises the
- *        same offer, the one that answers in seconds books the job.
- *
- *   Deliberately absent: invented statistics. Nothing here claims a percentage
- *   we cannot stand behind — a test enforces it.
+ *   Deliberately absent: invented statistics. Nothing here claims a
+ *   percentage, multiple or outcome we cannot stand behind, and
+ *   `upgrades.test.ts` enforces it.
  */
+import { formatCurrency } from "@/lib/utils";
 
 export type ServiceKey = "premium-ai-ads" | "ai-employees" | "website-creation";
 
@@ -115,25 +116,52 @@ export const PARENT_SERVICES: ParentService[] = [
 /** Their managed tiers, shown so a visitor can see where upgrades sit. */
 export interface FlightPlan {
   key: string;
-  /** Their eyebrow — PILOT / SQUADRON / FLEET. */
+  /** Their eyebrow — WINGMAN / PILOT / SQUADRON / FLEET. */
   code: string;
   name: string;
   promise: string;
   price: string;
+  /** Cents per month. The Check compares seat totals against this. */
+  monthly: number;
   fee: string;
   ceilingNote: string;
+  /** How many of the ten operators this plan actually unlocks. */
+  operators: number;
   badge?: string;
 }
 
+/**
+ * Their managed tiers, transcribed from phxgrowth.com/pricing.
+ *
+ * These were wrong in this file for a while — the fees read 8% / 6% / 4% and
+ * Wingman was missing altogether, which mattered more than a typo normally
+ * would. Wingman is $1,500/mo and it is the single cheapest way into the
+ * house; a page that talks a visitor out of over-buying cannot itself be
+ * quoting numbers that flatter it. Every figure here is now the parent's
+ * published one, and `upgrades.test.ts` pins them.
+ */
 export const FLIGHT_PLANS: FlightPlan[] = [
+  {
+    key: "wingman",
+    code: "Wingman",
+    name: "Wingman",
+    promise: "Three automations live in week one, and one employee in Slack",
+    price: "$1,500/mo",
+    monthly: 150000,
+    fee: "+ $450/mo per extra automation",
+    ceilingNote: "No ad management",
+    operators: 1,
+  },
   {
     key: "pilot",
     code: "Pilot",
     name: "Pilot",
     promise: "One channel, fully flown to profit",
     price: "$5,000/mo",
-    fee: "+ 8% of ad spend",
+    monthly: 500000,
+    fee: "+ 5% of managed ad spend",
     ceilingNote: "Up to $50k/mo managed",
+    operators: 1,
   },
   {
     key: "squadron",
@@ -141,21 +169,29 @@ export const FLIGHT_PLANS: FlightPlan[] = [
     name: "Squadron",
     promise: "The full media mix, flown as one portfolio",
     price: "$12,500/mo",
-    fee: "+ 6% of ad spend",
+    monthly: 1250000,
+    fee: "+ 3.5% of managed ad spend",
     ceilingNote: "Up to $250k/mo managed",
+    operators: 3,
     badge: "Most flown",
   },
   {
     key: "fleet",
-    code: "Fleet",
+    code: "Fleet Command",
     name: "Fleet Command",
     promise: "No ceiling. Your own air force.",
     price: "$30,000/mo",
-    fee: "+ 4% of ad spend",
+    monthly: 3000000,
+    fee: "+ 2% of managed ad spend",
     ceilingNote: "Unlimited spend managed",
+    operators: 10,
     badge: "Apex",
   },
 ];
+
+export function flightPlanByKey(key: string): FlightPlan | undefined {
+  return FLIGHT_PLANS.find((p) => p.key === key);
+}
 
 
 /**
@@ -633,174 +669,253 @@ export interface Upgrade {
   leading?: boolean;
   /** The apex upgrade — gets the gold treatment, exactly one on the page. */
   apex?: boolean;
+
+  // ---- Single-seat fields. Required on every seat; a test enforces it. ----
+
+  /**
+   * When this operator is on duty. The parent's homepage runs a section called
+   * "The shift board", so a seat that does not state its shift is speaking a
+   * different language from the house it attaches to.
+   */
+  shift?: string;
+  /**
+   * The refusal. What this seat will not do, stated before anybody asks.
+   *
+   * Every seat carries one and none of them is decorative. A single operator
+   * hired alone is a deliberately narrow purchase, and the failure mode of
+   * selling narrow things is that the buyer fills in the edges optimistically
+   * and discovers the truth in month two. Cheaper to lose the sale here.
+   */
+  wont?: string;
+  /** How this seat relates to demand you did not pay for — the site's thesis. */
+  unpaid?: string;
+  /**
+   * Minimum number of *other* seats this one needs to make sense.
+   *
+   * Only Tower sets it. Tower is a commander, and a commander hired with
+   * nothing to command is a monitoring product for an empty room.
+   * `checkSeats()` reads this and the page refuses to price the basket until
+   * it is satisfied.
+   */
+  requiresCrew?: number;
 }
 
 /**
- * Ordered most expensive first within each service, so the first price read is
- * the highest and everything after is judged against that rather than zero.
+ * THE SEATS
+ *
+ * DIRECTION
+ *   The parent's Agents page makes the offer in one sentence: "10 operators.
+ *   Three ways to hire them." The three ways are Pilot ($5,000/mo), Squadron
+ *   ($12,500/mo) and Fleet Command ($30,000/mo). This file is the fourth way.
+ *
+ *   The opening is not a gap in their catalogue — it is a consequence of what
+ *   they are. PHX/GROWTH is a media buying desk, so every tier is priced
+ *   against a budget in flight and the operators are bundled by how much spend
+ *   they are steering. That is the right way to sell a media desk. It also
+ *   means four operators whose work never touches an ad account are only
+ *   reachable at $30,000 a month.
+ *
+ * THE RULES
+ *   1. NO SPEND, NO SEAT. A seat may only exist for an operator that does
+ *      useful work with zero ad budget behind it. Six fail this and are listed
+ *      in LOCKED below, each with the reason and the tier that unlocks them.
+ *   2. NEVER UNDERCUT THE DESK. Where the parent already sells the same job à
+ *      la carte, the seat carries the parent's own published price rather than
+ *      a cheaper one. Closer is the case in point: phxgrowth.com/pricing lists
+ *      AI Phone Agents "from $995/mo", so the Closer seat is $995/mo. Winning
+ *      a client by underpricing the desk you are attached to is a way to lose
+ *      both.
+ *   3. SAY WHAT IT WON'T DO. Every seat carries a `wont` line. A single
+ *      operator hired alone is a narrow thing, and the fastest way to make a
+ *      narrow thing feel dishonest is to describe only its edges that flatter.
+ *   4. TALK THEM OUT OF IT. Where a parent tier is better value, the page says
+ *      so and links there. `checkSeats()` below is that rule in code.
+ *
+ * THE 2027 FILTER, RESTATED
+ *   Unpaid demand is the whole thesis of this property. Paid acquisition keeps
+ *   getting more expensive and less measurable; the customers a business does
+ *   not pay for — the search it ranks for, the reviews that carry it, the call
+ *   it actually answers — are the ones whose economics improve as everyone
+ *   else's degrade. Every seat here is on that side of the line, and that is
+ *   not a coincidence: it is rule 1 doing its job.
  */
 export const UPGRADES: Upgrade[] = [
-  // ---- On Premium AI Ads ----
-  // Exactly one, and it is the whole point. The Ad Management hero opens with
-  // "We don't make your ads", and Manifest item 04 says "whoever makes your
-  // ads — we decide what runs, scales and dies". That is a published boundary,
-  // and this is what sits on the other side of it. Padding this group back to
-  // three would mean inventing work the Manifest already covers.
   {
-    key: "motion-unit",
-    name: "The Motion Unit",
-    attachesTo: "premium-ai-ads",
-    promise: "The camera. The desk says it doesn't make your ads — this is who does.",
-    demandCase:
-      "Prism writes the genome and hands render-ready briefs to the Forge; the desk then decides what runs, scales and dies. Nowhere in that loop does anybody point a lens at a human being. Feeds keep tilting toward footage that looks captured rather than generated, and an account with a full brief queue and nothing filmed stalls at exactly the moment its testing machinery is working best.",
-    delivers: [
-      "Ten filmed spots a month — creator, founder or customer, sourced and directed",
-      "Filmed to the brief you already have, so no genome work is wasted",
-      "Vertical, square and in-feed cuts of every winner",
-      "Licensing, usage rights and the raw footage handed to you",
-    ],
-    price: 420000,
-    billing: "monthly",
-    fixes: "A brief queue with nothing filmed",
-    leading: true,
-  },
-
-  // ---- On AI Employees ----
-  //
-  // THE AUTOMATION BUILDS
-  //   The parent's Automation Spine publishes four loops, and every node in
-  //   all four sits inside the ad account: pull Meta/Google/TikTok, join
-  //   Shopify profit, model marginal ROAS, forge creative, clear policy, wire
-  //   tracking, launch the campaign. That is the whole machine, and it is
-  //   excellent, and it stops at the moment a lead becomes a job.
-  //
-  //   Everything after that moment is nobody's standing job. Closer works a
-  //   lead until it is "booked or dead" and then hands over to nothing. Echo
-  //   asks for a review once the work is done. Between those two points sits
-  //   the entire operating business — quoting, scheduling, doing, invoicing,
-  //   getting paid, and getting the customer back — and it is run on
-  //   somebody's memory.
-  //
-  //   The flagship can absolutely engineer that; it says so. But it is
-  //   bespoke, by application, and explicitly rationed — "a limited number of
-  //   builds each quarter — every one is engineered, not configured". These
-  //   two are the productised route for an owner who is not commissioning a
-  //   private build, and they run to the same published standard: inspectable
-  //   node by node, never a black box.
-  {
-    key: "job-runner",
-    name: "The Job Runner",
+    key: "seat-closer",
+    name: "Closer",
     attachesTo: "ai-employees",
-    promise: "Closer gets you the yes. This is the operator that takes it from there to paid.",
+    promise: "Answers every call and lead in under a minute. Missed calls get called back.",
     demandCase:
-      "The crew is built to win work and the spine is built to buy attention, and both stop at the same place: somebody said yes. What happens next is a person with a notebook. Quotes go out late, jobs slip, nobody rings to say the van is running behind, and the invoice sits unraised for a fortnight because the week got busy. None of that shows up in an ad report, which is exactly why it survives — the money leaks somewhere nobody is measuring. Demand is moving here fastest because the work is unglamorous, entirely rule-shaped, and until recently needed a salaried human to hold it.",
+      "A caller who reaches voicemail dials the next number, and for most local businesses the phone is still where the money calls. Answering it around the clock used to be a staffing line nobody could justify against the handful of calls that arrive after six; it is now a software line. The seat is priced at the desk's own published rate for this work rather than under it.",
     delivers: [
-      "Quotes out the same day, priced off your own rate card and sent for signature",
-      "Jobs put on the schedule and assigned, and the person told who is coming and when",
-      "Status messages on the day itself — running late, on site, done",
-      "Invoices raised the minute a job closes, then chased until they clear",
-      "Every step inspectable, with a hold-for-you gate on anything that moves money",
+      "Inbound calls and form leads worked within sixty seconds, day or night",
+      "Missed calls rung back automatically rather than left as a voicemail",
+      "Qualification on fit and intent, then booked straight to your calendar",
+      "Persistent follow-up across email, SMS and DM until the deal is booked or dead",
+      "Every call transcribed and on your deck before you wake up",
     ],
-    price: 490000,
+    price: 99500,
     billing: "monthly",
-    fixes: "Won work that stalls after the handshake",
+    fixes: "The phone nobody answers",
     build: true,
     oversight:
-      "Every step is inspectable node by node, the same as the loops it runs beside. Anything that moves money — a quote going out, an invoice being raised, a chase being sent — waits at a gate until you release it, and every release is recorded against your name.",
+      "Closer talks to your customers, so everything it can commit you to waits for you. A quote and a payment are hard-held — they sit in the queue until you release them, and every release is recorded against your name. A booking or a follow-up is time-held instead: visible in the queue with a countdown you can cancel inside, because a sixty-second promise held for a day is not a promise.",
+    shift: "24/7/365",
+    wont: "Quote a price it hasn't been given a rate card for, or take a payment. Both wait for you.",
+    unpaid: "Works the demand you already generated — it does not create any.",
+    leading: true,
+  },
+  {
+    key: "seat-herald",
+    name: "Herald",
+    attachesTo: "website-creation",
+    promise: "Wins the searches your buyers type — the clicks you don't pay for.",
+    demandCase:
+      "Every other operator on the board is downstream of a budget. Herald is the one whose output keeps arriving after you stop spending, which is exactly why it is the hardest one to justify buying at the tier that currently carries it. Unpaid search compounds slowly and only for whoever started earlier, so the cost of waiting a year is a year.",
+    delivers: [
+      "The keywords your buyers actually type, hunted and ranked by winnability",
+      "Pages shipped against them — written, built and published, not recommended",
+      "Google Business Profile worked weekly: posts, categories, photos, Q&A",
+      "Map pack position watched daily and defended when it slips",
+      "A monthly read-out of what moved, what didn't, and what ships next",
+    ],
+    price: 115000,
+    billing: "monthly",
+    fixes: "Invisible in the searches you already sell to",
+    build: true,
+    oversight:
+      "Herald changes things the public can see — pages on your own site and the fields on your Google Business Profile that decide whether the map pack shows you at all. Both are hard-held: nothing publishes and no category, hour or service area changes until you have read it and released it.",
+    shift: "Continuous · reports Mondays",
+    wont: "Buy a single click. Herald is the unpaid side of the board — paid search is Vector's job and Vector needs a flight plan.",
+    unpaid: "Pure unpaid demand. Nothing here is downstream of an ad budget.",
     leading: true,
     apex: true,
   },
   {
-    key: "comeback",
-    name: "The Comeback",
+    key: "seat-tower",
+    name: "Tower",
     attachesTo: "ai-employees",
-    promise: "Echo asks them for a review. This one asks them back.",
+    promise: "Watches whatever you have flying and names the problem before you notice it.",
     demandCase:
-      "Reputation work ends at the happy moment and paid acquisition starts again from a stranger, so the cheapest name a business owns — somebody who has already paid it once — gets contacted by nobody. For any trade with a service interval, a warranty window or a season, the trigger for the next job is a date that already exists in the records and nobody reads. Acquisition costs keep climbing while that date sits there, which is why the businesses compounding fastest are the ones treating their own history as a channel rather than an archive.",
+      "Every seat on this page runs unattended, which is the point of it and also the risk. A phone agent that silently stops answering is worse than no phone agent, because you stop checking. Tower is the operator whose entire job is noticing — and it is the cheapest insurance on the board precisely because it produces nothing on its own.",
     delivers: [
-      "Every past job dated, so the next one falls due without anybody remembering",
-      "Reminders timed to the season or interval the work is genuinely needed in",
-      "Dormant names re-approached on a schedule, not when somebody has a slow week",
-      "A monthly read-out of who was due, who replied, and who came back",
-      "Every message inspectable before it sends, and the whole run visible after",
+      "Every seat you run health-checked continuously, not on a schedule you have to remember",
+      "Incidents named in plain English with the next action attached, inside five minutes",
+      "A weekly board of what each operator did, what it cost and what it returned",
+      "Escalation to a human the moment something is stuck rather than slow",
     ],
-    price: 240000,
+    price: 85000,
     billing: "monthly",
-    fixes: "Customers who only ever buy once",
+    fixes: "An operator that quietly stopped working",
+    shift: "24/7/365",
+    wont: "Make the call for you. Tower reports and escalates; it does not overrule an operator or change your settings.",
+    unpaid: "Oversight, not demand. It makes the other seats trustworthy.",
+    /**
+     * The one seat with a prerequisite, and it is a real one rather than a
+     * packaging trick. Tower is a commander — hired with nothing to command it
+     * is a monitoring dashboard for an empty room, and selling that would be
+     * the exact thing this page exists to stop. `checkSeats()` enforces it.
+     */
+    requiresCrew: 2,
+  },
+  {
+    key: "seat-echo",
+    name: "Echo",
+    attachesTo: "ai-employees",
+    promise: "Turns happy customers into stars, and catches the unhappy ones first.",
+    demandCase:
+      "Star rating is the one number that changes the cost of every click a business will ever buy, paid or not, and it is set by whoever happens to feel strongly enough to type. The lever is timing: the same customer asked at the right hour and asked three weeks later are two different outcomes. It is the cheapest seat here and the one that most reliably makes the others cheaper.",
+    delivers: [
+      "The review ask timed to the moment a job actually landed well",
+      "Unhappy customers routed to you privately before they route themselves publicly",
+      "Every review answered in your voice, including the bad ones",
+      "Rating and volume tracked against the competitors in your map pack",
+    ],
+    price: 59000,
+    billing: "monthly",
+    fixes: "A rating set by whoever felt strongest",
     build: true,
     oversight:
-      "Nothing reaches a past customer without being visible to you first. You can read the queue before it sends, pull anybody out of it, and see afterwards exactly who was contacted, when, and what came back.",
+      "Echo speaks in your voice in public, which makes a bad sentence expensive in a way a bad ad never is. A reply to a review is hard-held and waits for you. A review request is time-held on a twelve-hour window — long enough to read the queue over a coffee, short enough that the ask still lands while the job is fresh.",
+    shift: "24/7/365",
+    wont: "Write a review, buy a review, or bury one. It asks, it routes, it replies — that is the whole of it.",
+    unpaid: "Pure unpaid demand, and it lowers the price of the paid kind too.",
   },
-  {
-    key: "voice-employee",
-    name: "The Voice Employee",
-    attachesTo: "ai-employees",
-    promise: "The eleventh operator: the one that picks up the phone.",
-    demandCase:
-      "Closer works every lead across email, SMS and DM and is usually first — but it cannot answer a ringing phone, and for most local businesses the phone is still where the money calls. A caller who reaches voicemail dials the next number, so this leaks more revenue than any bidding decision. Answering around the clock was a staffing cost nobody could justify; it is now a software cost, which is why demand is moving here fastest.",
-    delivers: [
-      "Inbound calls answered 24/7 in your business's voice, first ring",
-      "Qualification, quoting rules and calendar booking handled on the call",
-      "Missed-call text-back within seconds, handed straight to Closer",
-      "Full transcript and recording on the flight deck before you wake up",
-    ],
-    price: 190000,
-    billing: "monthly",
-    fixes: "The phone nobody answers",
-  },
-  {
-    key: "tuning-lab",
-    name: "The Tuning Lab",
-    attachesTo: "ai-employees",
-    promise: "Grade the crew against closed deals and retune on what actually won.",
-    demandCase:
-      "Tower keeps the crew coordinated and healthy, which is an operations job rather than a coaching one. Nobody is reading last month's transcripts against what the deals actually did and rewriting the prompts accordingly. A crew left untuned drifts as your offers and objections change, and the teams getting compounding returns are the ones closing that loop deliberately every month.",
-    delivers: [
-      "Every conversation graded against what the deal actually did",
-      "Prompts, qualification bars and escalation rules retuned monthly",
-      "New objections and offers taught the week they appear",
-      "A written read-out of what changed and what it moved",
-    ],
-    price: 160000,
-    billing: "monthly",
-    fixes: "A crew that drifts",
-  },
+];
 
-  // ---- On Website Creation ----
+/**
+ * The six that are not for sale here, and why.
+ *
+ * This list is doing more work than the four above it. An owner reading a
+ * roster of ten with four prices on it will ask what happened to the other
+ * six, and the answer has to be better than silence. Each of these fails rule
+ * 1 — no useful work without a budget in flight — except Relay, which fails
+ * rule 2 instead: the parent already sells that job for less than a seat here
+ * could honestly cost.
+ *
+ * Every entry routes to the tier that actually unlocks it. That is the point:
+ * six of the ten cards on this page are advertisements for phxgrowth.com.
+ */
+export interface LockedSeat {
+  name: string;
+  /** Their role line, as the Agents page states it. */
+  role: string;
+  /** Their one-liner, near enough verbatim. */
+  does: string;
+  /** Why it cannot be a single seat. */
+  reason: string;
+  /** The FLIGHT_PLANS key that unlocks it. */
+  unlockedBy: string;
+}
+
+export const LOCKED: LockedSeat[] = [
   {
-    key: "answer-engine",
-    name: "Answer Engine Visibility",
-    attachesTo: "website-creation",
-    promise: "Herald owns Google. This owns the assistants people ask instead of it.",
-    demandCase:
-      "Herald hunts keywords, ships pages and watches the map pack — search is handled, and handled well. A growing share of buyers never reach a results page at all: they ask an assistant and act on the two or three names it gives them. Being quoted there is a different discipline from ranking — structured, verifiable facts a model can lift, kept consistent everywhere it reads you — and almost nobody is doing it yet, which is exactly why it is worth doing now.",
-    delivers: [
-      "Services, areas, hours, prices and credentials published as machine-readable facts",
-      "Answer pages written for what buyers ask an assistant, not what they type",
-      "Entity consistency repaired everywhere a model reads you",
-      "Monthly report of what the major assistants say when asked about your category",
-    ],
-    price: 290000,
-    billing: "monthly",
-    fixes: "Absent from AI answers",
-    leading: true,
+    name: "Vector",
+    role: "Autonomous Media Buyer",
+    does: "Moves your budget to whatever is making money — every fifteen minutes.",
+    reason:
+      "The entire job is moving a budget. With no budget there is nothing to move, and a media buyer with nothing to buy is a subscription to a graph.",
+    unlockedBy: "pilot",
   },
   {
-    key: "citation-authority",
-    name: "Citation & Authority",
-    attachesTo: "website-creation",
-    promise: "Get named on the third-party pages an assistant trusts more than yours.",
-    demandCase:
-      "A model rarely quotes a business describing itself. It quotes trade press, local roundups, association directories, podcasts and interviews — sources it treats as independent. That makes earned third-party mention the supply line feeding everything the assistants say about you, and it is the one input no on-site work can manufacture. It compounds slowly, which is precisely why starting a year early matters.",
-    delivers: [
-      "Placement in the trade press, roundups and directories your category is read in",
-      "Founder interviews and podcast appearances booked and prepped",
-      "Association, licensing and accreditation records corrected and claimed",
-      "A quarterly map of where you are named versus your closest rivals",
-    ],
-    price: 180000,
-    billing: "monthly",
-    fixes: "No independent sources to quote",
+    name: "Prism",
+    role: "Creative Genome Director",
+    does: "Ships the next winning ad before the old one wears out.",
+    reason:
+      "Prism works from what the current ads are doing — which hooks are fatiguing, which frames still hold. Nothing running means nothing to learn from, and it would be inventing rather than directing.",
+    unlockedBy: "squadron",
+  },
+  {
+    name: "Ledger",
+    role: "Profit & Attribution Analyst",
+    does: "Checks platform claims against your books, every run.",
+    reason:
+      "There are no platform claims to check. Ledger exists to catch the gap between what Meta says it did and what your bank says happened; with no spend, both sides of that comparison are zero.",
+    unlockedBy: "squadron",
+  },
+  {
+    name: "Atlas",
+    role: "Growth Strategist",
+    does: "Builds the plan before a dollar leaves the runway.",
+    reason:
+      "The plan Atlas builds is a spend plan — channel fit, budget split, the order experiments run in. It is genuinely useful and it is genuinely about money you are about to spend on ads.",
+    unlockedBy: "fleet",
+  },
+  {
+    name: "Shield",
+    role: "Compliance Guard",
+    does: "Clears every ad before it spends — no banned accounts.",
+    reason:
+      "Shield is a pre-flight check on ads. No ads, no pre-flight. Selling it as a standalone would be selling a fire door for a building with no fire.",
+    unlockedBy: "fleet",
+  },
+  {
+    name: "Relay",
+    role: "Automation Engineer",
+    does: "Keeps every decision wired to a real action.",
+    reason:
+      "This one is not locked, it is just cheaper over there. Wingman is $1,500/mo and includes three working automations built for you in week one plus an employee in Slack. A single Relay seat could not honestly beat that, so we don't offer one.",
+    unlockedBy: "wingman",
   },
 ];
 
@@ -836,7 +951,7 @@ export function entryPrice(): number {
  *   below the sum of their parts, at a ticket the main site has no slot for.
  *
  *   A bundle here is not a discount dressed as a package. Each one exists
- *   because its members compound — answer-engine work is worth more when
+ *   because its members compound — Herald's ranking work is worth more when
  *   somebody is also earning the third-party citations a model reads, and a
  *   voice operator is worth more when its transcripts are being graded every
  *   month. That compounding is the argument; the saving is the incentive.
@@ -863,50 +978,46 @@ export interface Bundle {
   apex?: boolean;
 }
 
+/**
+ * Crews — seats that are worth more sitting next to each other.
+ *
+ * A crew here is not a discount wearing a name. Each one exists because its
+ * members feed each other: Echo has nothing to time its review ask against
+ * unless somebody answered the phone, and Herald's map-pack work is graded by
+ * the star rating Echo is defending. The compounding is the argument and the
+ * saving is only the incentive.
+ *
+ * The tests hold the shape: at least two real members, priced under the sum of
+ * its parts and over its dearest single member. A crew that costs less than
+ * one of its own seats is a pricing bug rather than an offer.
+ */
 export const BUNDLES: Bundle[] = [
   {
-    key: "answer-stack",
-    name: "The Answer Stack",
-    members: ["answer-engine", "citation-authority"],
-    promise: "Own what the assistants say about you — on your pages and everyone else's.",
+    key: "front-desk",
+    name: "The Front Desk",
+    members: ["seat-closer", "seat-echo"],
+    promise: "Answer every call, then turn the good ones into stars.",
     rationale:
-      "These two are one job split in half. Structured facts on your own site tell a model what you are; independent mentions elsewhere are what make it believe you. Run either alone and you are either uncorroborated or uncited. Run both and each makes the other worth more, which is why they are priced to be taken together.",
-    price: 390000,
+      "These two are the front and back of the same minute. Closer decides whether a caller becomes a customer; Echo decides whether that customer becomes the reason the next one calls. Run Closer alone and the goodwill it earns evaporates unrecorded. Run Echo alone and it is asking for reviews about jobs that a missed phone call meant you never won.",
+    price: 144000,
   },
   {
-    key: "response-stack",
-    name: "The Response Stack",
-    members: ["voice-employee", "tuning-lab"],
-    promise: "Answer everything, then get better at it every month.",
+    key: "unpaid-crew",
+    name: "The Unpaid Crew",
+    members: ["seat-herald", "seat-echo"],
+    promise: "The two operators that bring you customers you never paid for.",
     rationale:
-      "A voice operator on day one is a script. What turns it into an asset is somebody reading its transcripts against the deals that actually closed and retuning it — and that work has nothing to grade until the phone is being answered. Deployed together, month two is measurably better than month one instead of identical to it.",
-    price: 290000,
+      "Rankings and rating are one system pretending to be two. Google reads review velocity and response rate as ranking input, so Echo's work lifts Herald's; and Herald's map-pack position is what puts the profile in front of enough people for Echo to have anybody to ask. Bought singly each is slower than it needs to be, and both of them compound, which means the delay is permanent rather than recoverable.",
+    price: 159000,
   },
   {
-    key: "operations-stack",
-    name: "The Operations Stack",
-    members: ["voice-employee", "job-runner", "comeback"],
-    promise: "Answer it, run it, get them back — the whole life of a customer, automated.",
+    key: "full-board",
+    name: "The Full Board",
+    members: ["seat-closer", "seat-herald", "seat-tower", "seat-echo"],
+    promise: "Every seat on this page, with Tower watching all of them.",
     rationale:
-      "These three are one loop cut into thirds, and each is worth more with the others either side of it. A phone answered around the clock produces work nobody is scheduled to run; a job run cleanly to paid produces a satisfied name nobody asks back; a re-approach lands on somebody whose last job went badly if nothing ran it properly. Taken singly each closes a gap and opens the next one. Taken together the ring closes, and the same advert buys a customer instead of a job.",
-    price: 790000,
-  },
-  {
-    key: "deluxe-deck",
-    name: "The Deluxe Deck",
-    members: [
-      "motion-unit",
-      "voice-employee",
-      "job-runner",
-      "comeback",
-      "tuning-lab",
-      "answer-engine",
-      "citation-authority",
-    ],
-    promise: "Every gap on the board, closed at once — and nowhere else to buy it.",
-    rationale:
-      "The whole point of the coverage map is that a fixed, knowable number of things are left over once the flight plan is flying. This is all of them, run as one engagement with one point of contact, at a price the main site has no shelf for. It is the largest ticket either property carries and the only one that leaves nothing uncovered.",
-    price: 1590000,
+      "This is the whole unpaid side of the operation: found without paying for the click, answered on the first ring, asked for the review at the right hour, and watched around the clock by the one operator whose job is noticing when another has stopped. It is also the only configuration in which Tower makes sense at full stretch — three operators to command rather than the two it needs as a minimum. Fleet Command is the only other place all four are available, and it is $30,000/mo with a media budget attached.",
+    price: 325000,
     apex: true,
   },
 ];
@@ -940,57 +1051,219 @@ export function bundleSaving(bundle: Bundle): number {
   return bundleListPrice(bundle) - bundle.price;
 }
 
+
+/* ==========================================================================
+   THE CHECK
+   --------------------------------------------------------------------------
+   The one piece of logic on this site that can lose a sale, and the reason
+   the rest of the page is believable.
+
+   A single-seat desk attached to a bundled parent has an obvious failure
+   mode: a visitor ticks four seats, reaches $3,585/mo, buys, and finds out
+   later that $5,000 would have bought all four *plus* an autonomous media
+   buyer. That is not a pricing error — both numbers are correct — but it is
+   the kind of correct that ends a relationship, and the person it costs is
+   the one who trusted the page.
+
+   So the arithmetic runs in public, live, while they are choosing. Every
+   verdict below either confirms the basket or points at phxgrowth.com, and
+   two of the six actively route revenue away from this property.
+
+   Kept as a pure function of the seat list so `upgrades.test.ts` can assert
+   the awkward cases directly — Tower alone, the full board, the Wingman
+   collision — rather than through the DOM.
+   ========================================================================== */
+
+export type CheckTone = "ok" | "warn" | "elsewhere";
+
+export interface SeatCheck {
+  /** Cents per month for the chosen seats, before any crew pricing. */
+  total: number;
+  /** ok — proceed. warn — fix something. elsewhere — go to the parent. */
+  tone: CheckTone;
+  /** The verdict headline. Short enough to read at a glance. */
+  verdict: string;
+  /** The reasoning, in the owner's language. */
+  detail: string;
+  /** Set when the honest answer is a parent tier. Renders as a link out. */
+  goTo?: FlightPlan;
+  /** Set when a named crew prices this exact basket for less. */
+  crew?: Bundle;
+  /**
+   * True when this basket must not be reservable at all.
+   *
+   * Distinct from `tone`, and the distinction is the point. A "warn" verdict
+   * still lets you buy — it is saying there may be a better deal, which is
+   * advice. `blocked` is saying the configuration does not work, and a page
+   * that prints "we would rather not sell you one" above a live Reserve
+   * button has said nothing at all.
+   */
+  blocked?: boolean;
+}
+
+/** Cents for a set of seat keys. Unknown keys are ignored rather than thrown. */
+export function seatTotal(keys: string[]): number {
+  return keys.reduce((sum, k) => sum + (upgradeByKey(k)?.price ?? 0), 0);
+}
+
+/**
+ * Does a named crew cover exactly this basket? Same members, no more, no less.
+ * An exact match is the only honest prompt — offering a crew that contains
+ * seats they did not ask for is an upsell wearing a discount's clothes.
+ */
+function exactCrew(keys: string[]): Bundle | undefined {
+  const want = [...keys].sort().join("|");
+  return BUNDLES.find((b) => [...b.members].sort().join("|") === want);
+}
+
+export function checkSeats(keys: string[]): SeatCheck {
+  const seats = keys.map((k) => upgradeByKey(k)).filter((u): u is Upgrade => Boolean(u));
+  const total = seats.reduce((sum, u) => sum + u.price, 0);
+  const crew = exactCrew(seats.map((s) => s.key));
+  const wingman = flightPlanByKey("wingman")!;
+  const pilot = flightPlanByKey("pilot")!;
+
+  if (seats.length === 0) {
+    return {
+      total: 0,
+      tone: "ok",
+      verdict: "Nothing selected.",
+      detail:
+        "Pick a seat. The running total, and whether a PHX/GROWTH flight plan would be the cheaper answer, both appear here as you go.",
+    };
+  }
+
+  // Prerequisites first. A basket that cannot work should not be priced at
+  // all — showing a total under an unmet requirement teaches the visitor the
+  // requirement is soft.
+  const unmet = seats.find((s) => s.requiresCrew && seats.length - 1 < s.requiresCrew);
+  if (unmet) {
+    const short = unmet.requiresCrew! - (seats.length - 1);
+    return {
+      total,
+      tone: "warn",
+      blocked: true,
+      verdict: `${unmet.name} needs ${short} more seat${short === 1 ? "" : "s"}.`,
+      detail: `${unmet.name} is a commander — its whole job is watching the other operators and telling you when one has stopped. Hired with ${seats.length - 1 === 0 ? "nothing" : "only one seat"} to watch it is a monitoring product for an empty room, and we would rather not sell you one. Add ${short} more seat${short === 1 ? "" : "s"} or drop it.`,
+    };
+  }
+
+  // The Pilot line. Four seats land at $3,585 and Pilot is $5,000 — close
+  // enough that anybody spending on ads at all is better off over there,
+  // because Pilot carries a media buyer this desk cannot sell at any price.
+  if (total >= pilot.monthly) {
+    return {
+      total,
+      tone: "elsewhere",
+      verdict: "Buy the flight plan instead.",
+      detail: `This basket is ${formatCurrency(total)}/mo. Pilot is ${pilot.price} and adds an autonomous media buyer on one channel — the single thing no seat on this page is allowed to sell you. At this number you are paying single-seat rates for something the desk packages for less.`,
+      goTo: pilot,
+    };
+  }
+
+  if (total >= pilot.monthly * 0.7) {
+    return {
+      total,
+      tone: "warn",
+      verdict: `Within ${formatCurrency(pilot.monthly - total)} of Pilot.`,
+      detail: `${formatCurrency(total)}/mo here, ${pilot.price} for Pilot. If a dollar of ad spend is in your plans this year, close the gap and go there — you get these operators' work plus a media buyer, and the fee only starts once spend is actually being managed. If you are not running ads, this basket is the right answer and Pilot would be waste.`,
+      goTo: pilot,
+      crew,
+    };
+  }
+
+  // The Wingman collision. Wingman is $1,500/mo for three built automations
+  // plus an employee in Slack, and it is genuinely better value than a single
+  // mid-priced seat for anybody whose actual problem is plumbing.
+  if (seats.length === 1 && total >= wingman.monthly) {
+    const only = seats[0];
+    return {
+      total,
+      tone: "warn",
+      verdict: `Compare this against Wingman first.`,
+      detail: `One seat at ${formatCurrency(total)}/mo is more than Wingman, which is ${wingman.price} for three working automations built for you in week one and an employee in Slack. Take the ${only.name} seat if ${only.name.toLowerCase() === "herald" ? "unpaid search" : "this specific job"} is the thing you actually need done. If your problem is that nothing in your business talks to anything else, Wingman is the better buy and we will say so.`,
+      goTo: wingman,
+      crew,
+    };
+  }
+
+  if (crew) {
+    return {
+      total,
+      tone: "ok",
+      verdict: `${crew.name} prices this for ${formatCurrency(crew.price)}/mo.`,
+      detail: `You have picked exactly the seats in ${crew.name}, which is ${formatCurrency(bundleSaving(crew))}/mo less than buying them one at a time. Same operators, same shifts, one line on the invoice.`,
+      crew,
+    };
+  }
+
+  return {
+    total,
+    tone: "ok",
+    verdict: `${formatCurrency(total)}/mo, month to month.`,
+    detail: `${seats.length} seat${seats.length === 1 ? "" : "s"}, no setup fee, and nothing over at phxgrowth.com covers this for less. Every operator here is on the unpaid side of the board — none of it needs an ad budget behind it to work.`,
+  };
+}
+
 /**
  * The promise the page is held to. Stated here so the hero, the metadata and
  * the share card cannot say three different things.
  */
 export const THESIS = {
-  eyebrow: "Upgrades & Add-Ons",
-  headline: "Every upgrade. One flight plan.",
-  // The count is interpolated, not typed. Seven upgrades have been cut from
-  // this catalogue as the parent's pages arrived; a hardcoded "five" would
-  // have been wrong three times already.
-  body: `PHX/GROWTH flies your account. These are the ${UPGRADES.length} things nobody on it is doing yet.`,
+  eyebrow: "The fourth way to hire the crew",
+  headline: "Hire one operator. Not the whole crew.",
+  // Both counts are interpolated rather than typed. The split between what can
+  // be sold as a seat and what cannot has already moved twice as the parent's
+  // pricing page was read properly, and a hardcoded "four" was wrong both times.
+  body: `PHX/GROWTH hires its ten operators three ways — ${FLIGHT_PLANS[1].price}, ${FLIGHT_PLANS[2].price} or ${FLIGHT_PLANS[3].price} a month. ${UPGRADES.length} of the ten do work that never touches an ad account. Those ${UPGRADES.length} you can hire one at a time.`,
 } as const;
 
 /**
  * The guarantee, matched word-for-word in substance to the parent's 30-Day
- * Flight Check. Offering a *different* guarantee on the upgrade counter would
- * make a client wonder which one applies — so it is the same one.
+ * Flight Check. Offering a *different* guarantee on a property of the same
+ * brand would make a client wonder which one applies — so it is the same one.
  */
 export const FLIGHT_CHECK = {
   label: "The 30-Day Flight Check",
-  body: "Every upgrade runs under the same flight check as the rest of your account. Fly it for 30 days. If it hasn't cut waste and shipped work that moves your numbers, we'll make it right or part as friends — no lock-in, and your accounts and data leave with you.",
+  body: "Every seat runs under the same flight check as the rest of the house. Fly it for 30 days. If it hasn't cut waste and shipped work that moves your numbers, we'll make it right or part as friends — no lock-in, and your accounts and data leave with you.",
 } as const;
 
 /**
- * The fine print, in plain English — the parent's own section title. On
- * four-figure monthly work the commitment is the objection, so answering it in
- * public is worth more than any badge.
+ * The fine print, in plain English — the parent's own section title.
+ *
+ * The commitment is the objection on any monthly line, and it is a sharper
+ * objection here than on the parent: a seat is a small purchase, which means
+ * a visitor is deciding fast and will not email to ask. Every answer below is
+ * one they would otherwise have had to guess at, and two of them recommend
+ * spending money somewhere other than this page.
  */
 export const FAIR_QUESTIONS: { q: string; a: string }[] = [
   {
+    q: "Do I have to be a PHX/GROWTH client already?",
+    a: "No, and that is the whole point of this desk. The flight plans over at phxgrowth.com assume you are running ads with them. A seat assumes nothing — every operator here does useful work with zero ad budget behind it. If you already fly with PHX/GROWTH, a seat appears on your existing invoice instead of opening a second account.",
+  },
+  {
+    q: "Why can't I hire the other six?",
+    a: "Because five of them would not work and we would be taking your money for a dashboard. Vector, Prism, Ledger, Atlas and Shield all read from a live ad account — with no spend in flight they have nothing to optimise, learn from, reconcile, plan or clear. Relay is the exception: it works fine standalone, but Wingman does that job for $1,500/mo including two more automations than a seat would come with, so buying it here would be a worse deal. Every one of the six links to the tier that actually unlocks it.",
+  },
+  {
     q: "How does this bill?",
-    a: "Monthly upgrades are month-to-month with no lock-in — cancel ahead of any renewal. One-time builds are billed up front and you own the result. Upgrades appear on your existing PHX/GROWTH invoice; there is no second account to set up.",
+    a: "Monthly, month-to-month, no setup fee and no termination fee — the same terms the parent publishes. Cancel ahead of any renewal and you are out in five business days with your accounts and data. There is no annual commitment on any seat. If you already fly with PHX/GROWTH the seat is added to your existing PHX/GROWTH invoice rather than opening a second account; if you don't, it is billed on its own and nothing else is required of you.",
   },
   {
-    q: "Do I need to be a PHX/GROWTH client?",
-    a: "Yes. Every upgrade bolts onto a service that has to already be running — Premium AI Ads, AI Employees or Website Creation, à la carte or inside a managed flight plan. If you're not flying with PHX/GROWTH yet, start there and come back.",
+    q: "Does a seat come with a performance fee?",
+    a: "No. The parent's performance fee is a percentage of ad spend it actively manages — 5% on Pilot, 3.5% on Squadron, 2% on Fleet Command. No seat on this page manages ad spend, so no seat carries a fee. What you see is the whole number.",
   },
   {
-    q: "Does this change my performance fee?",
-    a: "No. The performance fee is a percentage of the ad spend PHX/GROWTH actively manages — 8% on Pilot, 6% on Squadron, 4% on Fleet Command. Upgrades are flat and sit outside it entirely.",
+    q: "Is a seat cheaper than the flight plan?",
+    a: "Sometimes, and the page will tell you when it is not. One or two seats are far cheaper than any tier that carries those operators. Once a basket climbs past about $3,500/mo the arithmetic turns over, because Pilot is $5,000 and includes a media buyer no seat is allowed to sell. The Check runs that comparison live while you choose and links out when the honest answer is over there.",
   },
   {
-    q: "Will this duplicate something I already pay for?",
-    a: "It can't. Each upgrade is written against the exact bullet list of the service it attaches to, and anything already included is out of scope by construction. If you think you're being sold something twice, say so and we'll cut it.",
-  },
-  {
-    q: "Do you have case studies for these?",
-    a: "No, and we won't pretend otherwise. PHX/GROWTH's own results page labels every figure representative and says the case studies aren't up yet; these upgrades are newer still. You get the founding rate and the people building it, and when there are real numbers you'll see real numbers.",
+    q: "Do you have case studies for these seats?",
+    a: "No, and we won't pretend otherwise. PHX/GROWTH's own results page labels every figure representative and says plainly the case studies aren't up yet; this desk is newer still. You'll find no percentage, multiple or testimonial anywhere on this page, because there isn't an honest one to show. What you get instead is the founding rate — the price you start at is the price you keep — and the people building it.",
   },
   {
     q: "Who actually does the work?",
-    a: "The same team already flying your account, with the specialists a given upgrade needs — a producer for the Motion Unit, a local search lead for the map pack. You keep one point of contact and the same Slack war room.",
+    a: "The same operators, run by the same team, on the same infrastructure as the flight plans. A seat is not a lighter version of Closer or Herald; it is Closer or Herald, hired alone. You keep one point of contact and the same Slack war room.",
   },
 ];

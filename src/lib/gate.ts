@@ -58,8 +58,16 @@ export type GateState =
   | "EXPIRED"
   | "FAILED";
 
-/** Which build proposed an action. */
-export type BuildKey = "job-runner" | "comeback";
+/**
+ * Which seat proposed an action.
+ *
+ * Only the seats that reach into the outside world appear here. Tower is
+ * deliberately absent: its whole job is watching and escalating, and its own
+ * refusal line says it does not overrule an operator or change your settings.
+ * An operator that cannot act needs no gate, and giving it one would imply it
+ * can.
+ */
+export type BuildKey = "seat-closer" | "seat-herald" | "seat-echo";
 
 export interface ActionKind {
   key: string;
@@ -91,73 +99,85 @@ export interface ActionKind {
  * the thing this file exists to make impossible.
  */
 export const ACTION_KINDS: ActionKind[] = [
-  // ---- The Job Runner: yes → scheduled → done → invoiced → paid ----
+  // ---- Closer: the phone and the follow-up ----
   {
     key: "quote.send",
-    build: "job-runner",
+    build: "seat-closer",
     label: "Send a quote",
-    // A quote is a price commitment. It is the number the customer holds us to.
+    // A quote is a price commitment. It is the number the customer holds you
+    // to, and Closer's published refusal is that it will not make one alone.
     movesMoney: true,
     minimumHold: "MANUAL",
     expiresAfterHours: 72,
   },
   {
-    key: "invoice.raise",
-    build: "job-runner",
-    label: "Raise an invoice",
+    key: "payment.take",
+    build: "seat-closer",
+    label: "Take a payment on the call",
     movesMoney: true,
     minimumHold: "MANUAL",
-    expiresAfterHours: 168,
+    expiresAfterHours: 24,
   },
   {
-    key: "payment.chase",
-    build: "job-runner",
-    label: "Chase a payment",
-    // Chasing the wrong customer, or one who already paid, is the fastest way
-    // to lose an account. Always a person.
-    movesMoney: true,
-    minimumHold: "MANUAL",
-    expiresAfterHours: 72,
-  },
-  {
-    key: "job.schedule",
-    build: "job-runner",
-    label: "Put a job on the schedule",
+    key: "booking.confirm",
+    build: "seat-closer",
+    label: "Put a booking on the calendar",
     movesMoney: false,
     minimumHold: "TIMED",
     reviewWindowMinutes: 30,
     expiresAfterHours: 24,
   },
   {
-    key: "job.status",
-    build: "job-runner",
-    label: "Send a status message",
-    // "Running late", "on site", "finished". Time-critical — a thirty-minute
-    // hold would make it a lie — but still visible before it goes.
+    key: "followup.send",
+    build: "seat-closer",
+    label: "Send a follow-up",
+    // Time-critical — a long hold on a sixty-second promise makes the promise
+    // false — but still visible before it goes.
     movesMoney: false,
     minimumHold: "TIMED",
     reviewWindowMinutes: 5,
     expiresAfterHours: 6,
   },
 
-  // ---- The Comeback: the re-book loop ----
+  // ---- Herald: anything that changes what the public sees ----
   {
-    key: "comeback.reminder",
-    build: "comeback",
-    label: "Remind a past customer",
+    key: "page.publish",
+    build: "seat-herald",
+    label: "Publish a page to your site",
+    movesMoney: false,
+    minimumHold: "MANUAL",
+    expiresAfterHours: 168,
+  },
+  {
+    key: "profile.update",
+    build: "seat-herald",
+    label: "Change your Google Business Profile",
+    // Categories, hours and service areas are the fields that decide whether
+    // the map pack shows you at all. Wrong once, invisible for a week.
+    movesMoney: false,
+    minimumHold: "MANUAL",
+    expiresAfterHours: 72,
+  },
+
+  // ---- Echo: anything said to a customer in your voice ----
+  {
+    key: "review.request",
+    build: "seat-echo",
+    label: "Ask a customer for a review",
     movesMoney: false,
     minimumHold: "TIMED",
     reviewWindowMinutes: 720,
     expiresAfterHours: 72,
   },
   {
-    key: "comeback.reactivate",
-    build: "comeback",
-    label: "Re-approach a dormant customer",
+    key: "review.reply",
+    build: "seat-echo",
+    label: "Reply to a review in your voice",
+    // A public reply to an angry review is the single most reputationally
+    // expensive sentence either property can emit on a client's behalf.
     movesMoney: false,
-    minimumHold: "TIMED",
-    reviewWindowMinutes: 720,
-    expiresAfterHours: 168,
+    minimumHold: "MANUAL",
+    expiresAfterHours: 72,
   },
 ];
 

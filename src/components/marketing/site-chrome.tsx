@@ -71,9 +71,9 @@ export function SiteFooter() {
     <footer className="border-t border-white/[0.06] py-12">
       <div className="container space-y-6">
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          <Link href="/" className="transition-colors hover:text-foreground">The tools</Link>
+          <Link href="/" className="transition-colors hover:text-foreground">The seats</Link>
           <Link href="/upgrades" className="transition-colors hover:text-foreground">
-            Upgrades &amp; prices
+            All prices
           </Link>
           <a
             href={`mailto:${BRAND.parent.email}`}
@@ -92,7 +92,7 @@ export function SiteFooter() {
             href={BRAND.parent.url}
             className="inline-flex items-center gap-1.5 text-sm text-cyan transition-colors hover:text-foreground"
           >
-            An upgrade counter for {BRAND.parent.name} <ArrowUpRight className="h-3.5 w-3.5" />
+            The single-seat desk for {BRAND.parent.name} <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
           <span className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} {BRAND.name}

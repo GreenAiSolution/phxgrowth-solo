@@ -115,7 +115,7 @@ export const TOOLS: ToolDef[] = [
     inputSchema: {
       type: "object",
       properties: {
-        key: { type: "string", description: `Upgrade key, e.g. ${UPGRADES[0]?.key ?? "answer-engine"}` },
+        key: { type: "string", description: `Upgrade key, e.g. ${UPGRADES[0]?.key ?? "seat-closer"}` },
       },
       required: ["key"],
       additionalProperties: false,

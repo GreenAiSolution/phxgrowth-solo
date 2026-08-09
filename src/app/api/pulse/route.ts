@@ -29,7 +29,7 @@ const UPGRADE_KEYS = UPGRADES.map((u) => u.key);
 
 const Body = z.object({
   /** What happened. Closed set — an open string would become a junk drawer. */
-  event: z.enum(["view", "depth", "gap_finder", "upgrade_added", "enquiry_started"]),
+  event: z.enum(["view", "depth", "gap_finder", "upgrade_added", "enquiry_started", "seat_toggled", "routed_out"]),
   /** Scroll depth bucket, or the upgrade key, depending on the event. */
   detail: z.string().max(64).optional(),
   /** Where they came from, as the browser reports it. */
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   // Only accept a detail we recognise, so a crafted beacon can't write
   // arbitrary strings into the log or the sheet.
   const safeDetail =
-    event === "upgrade_added"
+    event === "upgrade_added" || event === "seat_toggled"
       ? UPGRADE_KEYS.includes(detail ?? "")
         ? detail
         : undefined

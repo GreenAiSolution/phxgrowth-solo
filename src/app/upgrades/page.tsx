@@ -166,9 +166,9 @@ export default function UpgradesPage() {
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
             {THESIS.body} No configurator, no call required to see a number — every price is on
-            this page. Prefer to poke at something first?{" "}
+            this page. Want the full board and the crew comparison?{" "}
             <Link href="/" className="text-cyan underline-offset-4 hover:underline">
-              The tools are over here.
+              The flight line is over here.
             </Link>
           </p>
 

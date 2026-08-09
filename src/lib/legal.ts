@@ -130,15 +130,15 @@ const TERMS: LegalDocument = {
     {
       heading: "Who we are and what this covers",
       body: [
-        `${BRAND.name} ("we", "us") is the upgrade counter for ${BRAND.parent.name} (${BRAND.parent.url}). We sell specialised upgrades that bolt onto a ${BRAND.parent.name} service you already buy — ${serviceList()}. We do not sell those underlying services here; they are bought from ${BRAND.parent.name} directly.`,
+        `${BRAND.name} ("we", "us") is the single-seat desk for ${BRAND.parent.name} (${BRAND.parent.url}). We hire out individual operators from the ${BRAND.parent.name} crew, one at a time, on a monthly basis. You do not need to be a ${BRAND.parent.name} client to hire one, and no seat sold here manages advertising spend. The underlying ${BRAND.parent.name} services — ${serviceList()} — and the managed flight plans are bought from ${BRAND.parent.name} directly, not here.`,
         `These Terms govern your use of this website and, where you are given one, the client platform. By sending an enquiry, creating an account or using any part of the platform, you agree to them. If you are agreeing on behalf of a company, you confirm you have authority to bind it.`,
       ],
     },
     {
       heading: "Enquiries are not orders",
       body: [
-        `Sending an enquiry through this site costs nothing and commits you to nothing. It is a request for a written scope and price. No payment method is collected, nothing is charged, and nothing on your ${BRAND.parent.name} account changes.`,
-        `An upgrade begins only when you have agreed a written scope with us. Until then there is no contract for the work.`,
+        `Sending an enquiry through this site costs nothing and commits you to nothing. It is a request for a written scope and price. No payment method is collected, nothing is charged, and if you have a ${BRAND.parent.name} account, nothing on it changes.`,
+        `A seat begins only when you have agreed a written scope with us. Until then there is no contract for the work.`,
       ],
     },
     {

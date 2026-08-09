@@ -38,7 +38,7 @@ const T0 = at("2026-08-01T09:00:00Z");
 function action(over: Partial<GateAction> = {}): GateAction {
   return {
     id: "a1",
-    kind: "comeback.reminder",
+    kind: "review.request",
     hold: "TIMED",
     state: "HELD",
     releaseAt: at("2026-08-01T21:00:00Z"),
@@ -118,21 +118,21 @@ describe("the registry is the thing that cannot be argued with", () => {
   it("has unique keys and resolves them", () => {
     const keys = ACTION_KINDS.map((k) => k.key);
     expect(new Set(keys).size).toBe(keys.length);
-    expect(kindByKey("invoice.raise")?.movesMoney).toBe(true);
+    expect(kindByKey("payment.take")?.movesMoney).toBe(true);
     expect(kindByKey("nope")).toBeUndefined();
   });
 });
 
 describe("a caller can ask for more supervision, never less", () => {
   it("refuses to weaken a manual hold, however it is asked", () => {
-    const money = kindByKey("invoice.raise")!;
+    const money = kindByKey("payment.take")!;
     for (const requested of [undefined, "TIMED", "MANUAL"] as (GateHold | undefined)[]) {
       expect(resolveHold(money, requested), `asked for ${requested}`).toBe("MANUAL");
     }
   });
 
   it("lets a timed kind be escalated to manual", () => {
-    const timed = kindByKey("comeback.reminder")!;
+    const timed = kindByKey("review.request")!;
     expect(resolveHold(timed, "MANUAL")).toBe("MANUAL");
     expect(resolveHold(timed, "TIMED")).toBe("TIMED");
     expect(resolveHold(timed, undefined)).toBe("TIMED");
@@ -141,9 +141,9 @@ describe("a caller can ask for more supervision, never less", () => {
   it("never puts a release timer on a manual hold", () => {
     // Belt and braces: even if a manual kind somehow carried a window, an
     // action held manually must have no auto-release date at all.
-    const money = kindByKey("payment.chase")!;
+    const money = kindByKey("quote.send")!;
     expect(autoReleaseAt(money, "MANUAL", T0)).toBeNull();
-    const timed = kindByKey("comeback.reminder")!;
+    const timed = kindByKey("review.request")!;
     expect(autoReleaseAt(timed, "MANUAL", T0)).toBeNull();
     expect(autoReleaseAt(timed, "TIMED", T0)).toBeInstanceOf(Date);
   });
@@ -153,7 +153,7 @@ describe("what happens to an action, moment by moment", () => {
   it("never releases a manual hold on time alone", () => {
     // The single most important test here. A manual action left for a year
     // is still waiting for a person.
-    const a = action({ kind: "invoice.raise", hold: "MANUAL", releaseAt: null });
+    const a = action({ kind: "payment.take", hold: "MANUAL", releaseAt: null });
     for (const t of ["2026-08-01T09:00:01Z", "2026-08-02T09:00:00Z", "2026-08-03T23:59:59Z"]) {
       expect(decide(a, at(t)).do, `at ${t}`).toBe("wait");
     }
@@ -174,7 +174,7 @@ describe("what happens to an action, moment by moment", () => {
       that goes out on its own.
     */
     const a = action({
-      kind: "invoice.raise",
+      kind: "payment.take",
       hold: "MANUAL",
       releaseAt: at("2026-08-01T00:00:00Z"), // already elapsed at T0
     });
@@ -263,7 +263,7 @@ describe("the queue reads like something a person can act on", () => {
 
 describe("expiry windows are real durations", () => {
   it("computes them from the kind", () => {
-    const k = kindByKey("invoice.raise")!;
+    const k = kindByKey("payment.take")!;
     expect(expiryFor(k, T0).getTime() - T0.getTime()).toBe(k.expiresAfterHours * 3_600_000);
   });
 

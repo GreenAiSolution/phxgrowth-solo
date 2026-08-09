@@ -10,7 +10,14 @@ import {
   handleBody,
   handleRpc,
 } from "./mcp";
-import { BUNDLES, UPGRADES, bundleListPrice, bundleSaving, upgradeByKey } from "./upgrades";
+import {
+  BUNDLES,
+  FLIGHT_PLANS,
+  UPGRADES,
+  bundleListPrice,
+  bundleSaving,
+  upgradeByKey,
+} from "./upgrades";
 
 /**
  * Two things are being tested here and the second one is unusual.
@@ -221,7 +228,9 @@ describe("prices", () => {
       legal.add(dollars(bundleListPrice(b)));
       legal.add(dollars(bundleSaving(b)));
     }
-    for (const p of ["$5,000", "$12,000", "$25,000"]) legal.add(p); // flight plan labels
+    // Read from the plan data rather than typed. The hardcoded list here said
+    // $5,000 / $12,000 / $25,000 — two of which the desk has never charged.
+    for (const plan of FLIGHT_PLANS) legal.add(plan.price.replace("/mo", ""));
 
     const everything = [
       callTool("list_catalogue", {}),

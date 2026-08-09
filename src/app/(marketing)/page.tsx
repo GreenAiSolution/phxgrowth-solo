@@ -1,59 +1,65 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Minus } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import {
-  PARENT_SERVICES,
-  UPGRADES,
-  THESIS,
+  FAIR_QUESTIONS,
   FLIGHT_CHECK,
+  FLIGHT_PLANS,
+  LOCKED,
   PROOF_POSTURE,
+  THESIS,
+  UPGRADES,
   entryPrice,
 } from "@/lib/upgrades";
 import { formatCurrency } from "@/lib/utils";
 import { env } from "@/lib/env";
-import { DECK_INDEX } from "@/lib/deck";
 import { Enquiry } from "@/components/marketing/enquiry";
 import { Pulse } from "@/components/marketing/pulse";
 import { Wordmark } from "@/components/marketing/site-chrome";
-import { Deck } from "@/components/marketing/deck";
-import { SeedButton } from "@/components/marketing/playground";
 import { SystemField } from "@/components/marketing/system-field";
+import { Reveal } from "@/components/marketing/fx";
+import { FlightLine } from "@/components/marketing/flight-line";
 
 /**
- * THE INSTRUMENT DECK
+ * THE SINGLE-SEAT DESK
  *
  * DIRECTION
- *   This page used to argue. It had a thesis section, a three-shifts section, a
- *   proof-posture section and a close, and every one of them was a paragraph
- *   asking to be believed. An owner who has been pitched by four agencies this
- *   year does not read those. They have a working filter for them.
+ *   phxgrowth.com's Agents page carries one sentence that this entire property
+ *   is an answer to: "10 operators. Three ways to hire them." The three ways
+ *   are $5,000, $12,500 and $30,000 a month, and six of the ten operators only
+ *   appear at the top one.
  *
- *   So there is no argument left on the page. There are seven instruments, and
- *   each one takes something the visitor cannot currently see about their own
- *   business and makes it legible: what a model can determine about them,
- *   which questions silently exclude them, who corroborates them, what the
- *   five minutes after a missed call actually look like, where the next
- *   advertising dollar should go. The only claims made are arithmetic
- *   performed on numbers the visitor typed.
+ *   That is not a mistake in their pricing. PHX/GROWTH is a media buying desk;
+ *   bundling operators by how much spend they steer is the correct way to sell
+ *   a media buying desk. But it produces a specific and quite large group of
+ *   people it cannot serve: the business that wants its phone answered and its
+ *   map pack defended, and is not going to run $50,000 a month through Meta to
+ *   get it.
  *
- *   The selling happens as a consequence. An instrument finds a gap, names
- *   what closes it, and the readout adds it to the stack. If it finds nothing,
- *   it says so.
+ *   This is the fourth way to hire them. One operator, one price, month to
+ *   month, no ad budget required.
  *
- * WHY ONE OF THE SEVEN SELLS NOTHING
- *   The Marginal Dollar concludes that PHX/GROWTH already does this, on a
- *   fifteen-minute loop, and offers no upgrade at all. Every owner reading this
- *   has been through a diagnostic that happened to diagnose exactly what its
- *   author was selling, and they discount everything downstream of it. One
- *   instrument that can say "not ours" is what buys the other six their
- *   credibility.
+ * WHAT REPLACED THE INSTRUMENTS
+ *   The previous version of this page was an instrument deck — seven
+ *   interactive diagnostics, each of which asked the visitor to describe their
+ *   business and handed back a finding that resolved into something to buy.
+ *   The craft in them was real. The problem was structural: a site whose whole
+ *   proposition is that buying should be small and quick opened with seven
+ *   pieces of homework.
+ *
+ *   There is one interactive object now — a ten-card board with a running
+ *   total — and the argument lives in the shape of the board rather than in
+ *   paragraphs asking to be believed. Four cards have prices. Six have locks
+ *   and route to phxgrowth.com. That ratio is the pitch: a page mostly
+ *   composed of reasons to buy from somebody else is a page you can believe
+ *   about the four things it does sell.
  *
  * BLUEPRINTS
- *   Server component. `<Deck />` is the single client boundary; the seven
- *   instruments share one store behind it, which is what lets the Inspector's
- *   answers drive the Query Fan and one button fill every panel at once. Every
- *   price resolves through the catalogue, and `/api/reserve` recomputes the
- *   total server-side regardless — a posted price is user input.
+ *   Server component. `<FlightLine />` is the single client boundary and holds
+ *   all selection state; the enquiry form listens for the `add-upgrade` event
+ *   it dispatches, so a basket is already ticked by the time anybody reaches
+ *   it. Every price resolves through the catalogue, and `/api/reserve`
+ *   recomputes the total server-side regardless — a posted price is user input.
  */
 
 function structuredData() {
@@ -73,10 +79,10 @@ function structuredData() {
     },
     hasOfferCatalog: {
       "@type": "OfferCatalog",
-      name: "Upgrades & add-ons",
+      name: "Single operator seats",
       itemListElement: UPGRADES.map((u) => ({
         "@type": "Offer",
-        name: u.name,
+        name: `${u.name} — single seat`,
         description: u.promise,
         price: (u.price / 100).toFixed(2),
         priceCurrency: "USD",
@@ -85,17 +91,16 @@ function structuredData() {
   };
 }
 
-/** The contents page for the deck. Its order is the deck's order — see `@/lib/deck`. */
-const DECK = DECK_INDEX;
+/** The three tiers the parent actually sells the crew in, minus Wingman. */
+const CREW_TIERS = FLIGHT_PLANS.filter((p) => p.key !== "wingman");
 
 export default function Home() {
   const from = entryPrice();
+  const allSeats = UPGRADES.reduce((s, u) => s + u.price, 0);
+  const fleet = FLIGHT_PLANS.find((p) => p.key === "fleet")!;
 
   return (
     <div className="relative">
-      {/* The live substrate everything sits on. Seven panels on flat black
-          read as seven widgets; seven panels over a running graph read as one
-          machine. Fixed, behind everything, and it never takes a click. */}
       <SystemField />
       <Pulse />
       {/* eslint-disable-next-line react/no-danger */}
@@ -115,267 +120,263 @@ export default function Home() {
             >
               {BRAND.parent.name} <ArrowUpRight className="h-3.5 w-3.5" />
             </a>
-            {/* The escape hatch, and it is never hidden.
-                The deck is the better experience and it stays the primary
-                action — but it asks for eight modules of attention before it
-                will show a number, and for a while it was the only public page
-                on the site. Anybody who arrives already sold, or arrives with
-                four minutes, gets a straight route to the price list. */}
-            <Link href="/upgrades" className="pill-ghost px-4 py-2.5 text-sm">
-              Prices
+            <Link href="/upgrades" className="pill-ghost px-5 py-2 text-sm">
+              All prices
             </Link>
-            <a href="#map" className="pill-primary px-4 py-2.5 text-sm sm:px-5">
-              <span className="sm:hidden">Start</span>
-              <span className="hidden sm:inline">Start reading</span>
+            <a href="#seats" className="pill-primary px-5 py-2 text-sm">
+              The seats
             </a>
           </div>
         </div>
       </header>
 
-      {/* ── Hero — a contents page for the machine, not a pitch ────────── */}
-      <section className="relative grain overflow-hidden py-20 md:py-28">
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden">
         <div className="aurora" />
-        <div className="container relative">
-          {/* items-start, not items-center: at 390px this wraps to two lines
-              and a centred dot floats between them. */}
-          <p className="inline-flex items-start gap-2.5 rounded-full border border-white/10 px-5 py-2">
-            <span className="mt-[0.42rem] h-1.5 w-1.5 shrink-0 rounded-full bg-magenta" />
-            <span className="eyebrow text-[0.68rem] text-muted-foreground">
-              One live map · {DECK.length - 1} tools · one of them sells you nothing
-            </span>
-          </p>
+        <div className="grain" />
+        <div className="container relative py-20 sm:py-28 lg:py-32">
+          <Reveal>
+            <p className="eyebrow text-cyan">{THESIS.eyebrow}</p>
+            <h1 className="mt-5 max-w-4xl font-heading text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
+              <span className="text-kinetic">Hire one operator.</span>
+              <br />
+              Not the whole crew.
+            </h1>
+            <p className="mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+              {BRAND.parent.name} runs ten named AI operators and hires them out three ways —{" "}
+              {CREW_TIERS.map((t) => t.price.replace("/mo", "")).join(", ")} a month. Four of the
+              ten do work that never touches an ad account. Those four you can hire one at a time,
+              from {formatCurrency(from)}/mo, with no media budget behind them.
+            </p>
 
-          <h1 className="mt-7 max-w-4xl text-[2.6rem] font-bold leading-[1.03] tracking-tight sm:text-6xl md:text-7xl">
-            See your business
-            <br />
-            <span className="text-gradient">the way AI sees it.</span>
-          </h1>
+            <div className="mt-9 flex flex-wrap items-center gap-3">
+              <a href="#seats" className="pill-primary">
+                See the four seats <ArrowRight className="h-4 w-4" />
+              </a>
+              <a href={`${BRAND.parent.url}/agents`} className="pill-ghost">
+                The full crew of ten <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </div>
+          </Reveal>
 
-          <p className="mt-7 max-w-xl text-lg leading-relaxed text-muted-foreground">
-            No slide deck, no case studies. Seven connected tools that show you what you
-            can&rsquo;t currently see about your own business — using your numbers, not ours.
-            Free to play with, nothing to sign up for.
-          </p>
-
-          {/* An empty instrument is a chore. One click fills all seven with a
-              real-shaped account so the machine is running before anybody has
-              decided whether to bother typing. */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <SeedButton />
-            <a href="#map" className="pill-ghost text-sm">
-              Or use my own numbers <ArrowRight className="h-4 w-4" />
-            </a>
-            <Link
-              href="/upgrades"
-              className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-            >
-              Skip to prices
-            </Link>
-          </div>
-
-          {/* The index. Every entry is a real anchor, so the machine is
-              legible before a single control is touched. */}
-          {/* Borders on the items, not a gap-px grid over a tinted background:
-              seven cards in three columns leaves two empty cells, and with the
-              old approach those rendered as a phantom lit block. */}
-          <ol className="mt-11 grid overflow-hidden rounded-xl border border-white/[0.07] sm:grid-cols-2 lg:grid-cols-3">
-            {DECK.map((d) => (
-              <li
-                key={d.id}
-                className="border-b border-white/[0.07] last:border-b-0 sm:[&:nth-last-child(-n+1)]:border-b-0 sm:odd:border-r lg:[&:nth-child(3n)]:border-r-0 lg:[&:not(:nth-child(3n))]:border-r"
-              >
-                <a
-                  href={`#${d.id}`}
-                  className="group flex h-full items-baseline gap-3 p-4 transition-colors hover:bg-white/[0.03]"
-                >
-                  <span className="font-mono text-[0.7rem] tabular-nums tracking-[0.2em] text-cyan">
-                    {d.n}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-[0.92rem] font-semibold leading-tight">
-                      {d.name}
-                    </span>
-                    <span className="mt-0.5 block text-[0.75rem] text-muted-foreground">
-                      {d.reads}
-                      {d.folded && (
-                        <span className="text-muted-foreground/50"> · under “more tools”</span>
-                      )}
-                    </span>
-                  </span>
-                  <ArrowRight className="ml-auto h-3.5 w-3.5 shrink-0 self-center text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-cyan" />
-                </a>
-              </li>
-            ))}
-          </ol>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
-            {[
-              `From ${formatCurrency(from)}/mo`,
-              "Month to month",
-              "Founding rate locks in",
-              FLIGHT_CHECK.label.replace(/^The /, ""),
-            ].map((item, i, all) => (
-              <span key={item} className="flex items-center gap-5">
-                <span className="eyebrow text-[0.62rem] text-muted-foreground/70">{item}</span>
-                {i < all.length - 1 && (
-                  <span aria-hidden className="text-muted-foreground/30">
-                    ·
-                  </span>
-                )}
-              </span>
-            ))}
-          </div>
+          {/* The arithmetic that justifies the site, stated once, in public. */}
+          <Reveal delay={140}>
+            <div className="mt-14 grid max-w-4xl gap-px overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.05] sm:grid-cols-3">
+              {[
+                {
+                  k: "All four seats, together",
+                  v: `${formatCurrency(allSeats)}/mo`,
+                  n: "Month to month. No setup fee, no performance fee.",
+                  tone: "text-cyan",
+                },
+                {
+                  k: "The only other place to get them",
+                  v: fleet.price,
+                  n: `${fleet.name}, ${fleet.fee.replace("+ ", "plus ")}.`,
+                  tone: "text-gold",
+                },
+                {
+                  k: "Operators we won't sell alone",
+                  v: `${LOCKED.length} of 10`,
+                  n: "Each one says why, and links to the tier that opens it.",
+                  tone: "text-muted-foreground",
+                },
+              ].map((cell) => (
+                <div key={cell.k} className="bg-background/85 p-6">
+                  <p className="hud-label">{cell.k}</p>
+                  <p className={`hud-value mt-2.5 font-heading text-3xl font-semibold ${cell.tone}`}>
+                    {cell.v}
+                  </p>
+                  <p className="mt-2 text-[0.83rem] leading-relaxed text-muted-foreground">
+                    {cell.n}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ── System header — names the machine before its first module ──── */}
-      <section className="relative border-y border-white/[0.07] bg-black/30 py-5 backdrop-blur-sm">
-        <div className="fx-rainbow-rule absolute inset-x-0 top-0" />
-        <div className="container flex flex-wrap items-center gap-x-8 gap-y-3">
-          <div className="flex items-center gap-2.5">
-            <span className="fx-live h-1.5 w-1.5 rounded-full bg-signal text-signal" />
-            <span className="eyebrow text-[0.6rem] text-signal">System online</span>
-          </div>
-          <span className="eyebrow text-[0.6rem] text-muted-foreground">
-            {BRAND.name} Growth Intelligence
-          </span>
-          <span className="hidden text-[0.75rem] text-muted-foreground sm:inline">
-            {DECK.length - 1} modules · one shared brain · everything you type stays in this tab
-          </span>
-          <span className="ml-auto font-mono text-[0.62rem] tracking-[0.2em] text-muted-foreground/50">
-            v1 · {BRAND.parent.name}
-          </span>
-        </div>
-      </section>
-
-      {/* ── The deck ───────────────────────────────────────────────────── */}
-      <Deck />
-
-      {/* ── Enquiry ────────────────────────────────────────────────────── */}
-      <section
-        id="enquiry"
-        className="scroll-mt-24 border-t border-white/[0.06] py-16 md:py-20"
-      >
+      {/* ── Why this desk exists ───────────────────────────────────────── */}
+      <section className="border-y border-white/[0.06] py-20 sm:py-24">
         <div className="container">
-          <div className="flex flex-col gap-3 md:flex-row md:items-baseline md:gap-6">
-            <span className="font-mono text-[0.7rem] tabular-nums tracking-[0.3em] text-cyan">
-              07
-            </span>
-            <div>
-              <h2 className="text-[1.75rem] font-bold leading-[1.1] tracking-tight md:text-4xl">
-                Send it to us
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+            <Reveal>
+              <div>
+                <p className="eyebrow text-gold">Why this desk exists</p>
+                <h2 className="mt-3 font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+                  The crew is bundled by ad spend. Four of them don&rsquo;t need any.
+                </h2>
+              </div>
+            </Reveal>
+            <Reveal delay={90}>
+              <div className="space-y-5 text-[1.02rem] leading-relaxed text-muted-foreground">
+                <p>
+                  {BRAND.parent.name} is a media buying desk, and it prices like one. The tiers go
+                  up as the managed spend goes up, and the operators come along with them — one at{" "}
+                  {FLIGHT_PLANS[1].price}, three at {FLIGHT_PLANS[2].price}, all ten at{" "}
+                  {fleet.price}. For a business running real budget that is the correct way to buy.
+                </p>
+                <p>
+                  It does mean something odd at the edges. Closer answers your phone. Herald wins
+                  the searches you don&rsquo;t pay for. Echo works your reviews. Tower watches the
+                  board. Not one of those jobs consumes a dollar of ad spend — and all four of them
+                  currently start at {fleet.price}.
+                </p>
+                <p className="text-foreground">
+                  So this desk sells those four on their own, at the price the work is worth rather
+                  than the price the tier costs. Everything else stays where it belongs, upstairs,
+                  and this page will point you there whenever that is the better answer.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ── The board, the Check, and the six locks ────────────────────── */}
+      <FlightLine />
+
+      {/* ── What a seat is not ─────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.06] py-20 sm:py-24">
+        <div className="container">
+          <Reveal>
+            <p className="eyebrow text-gold">Before you buy one</p>
+            <h2 className="mt-3 max-w-3xl font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+              What a seat is not.
+            </h2>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              A single operator is a deliberately narrow purchase. The way narrow purchases go
+              wrong is that the buyer fills in the edges optimistically, so here are the edges.
+            </p>
+          </Reveal>
+
+          <div className="mt-10 grid max-w-4xl gap-4 sm:grid-cols-2">
+            {[
+              [
+                "It is not ad management",
+                "No seat touches a campaign, a budget or a bid. That is Vector's job and Vector needs a flight plan. If you want ads flown, Pilot is the floor.",
+              ],
+              [
+                "It is not a strategy engagement",
+                "Nobody is building you a growth plan. Atlas does that and it sits at Fleet Command. A seat does one job continuously and reports on it.",
+              ],
+              [
+                "It is not a flight director",
+                "The managed tiers come with a named human running the account. A seat comes with the operator and the war room, not a dedicated director.",
+              ],
+              [
+                "It is not a discount on the crew",
+                "Past about three seats the arithmetic turns and a flight plan is the better buy. The Check says so on the page rather than leaving you to find out.",
+              ],
+            ].map(([h, b]) => (
+              <div key={h} className="phx-card p-6">
+                <div className="flex items-start gap-3">
+                  <Minus className="mt-1 h-4 w-4 shrink-0 text-gold/70" />
+                  <div>
+                    <h3 className="font-heading text-lg font-semibold tracking-tight">{h}</h3>
+                    <p className="mt-2 text-[0.9rem] leading-relaxed text-muted-foreground">{b}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Proof posture ──────────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.06] py-20 sm:py-24">
+        <div className="container">
+          <Reveal>
+            <div className="phx-card phx-card-gold mx-auto max-w-3xl p-8 sm:p-10">
+              <p className="eyebrow text-gold">{PROOF_POSTURE.eyebrow}</p>
+              <h2 className="mt-3 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+                {PROOF_POSTURE.headline}
               </h2>
-              <p className="mt-2 max-w-2xl text-[0.95rem] leading-relaxed text-muted-foreground">
-                Whatever the tools found is already ticked. A real person reads it and sends you a
-                price in writing. No card, no automated sequence, nothing charged.
+              <p className="mt-5 leading-relaxed text-muted-foreground">{PROOF_POSTURE.body}</p>
+              <p className="mt-4 leading-relaxed text-muted-foreground">
+                {PROOF_POSTURE.founding}
+              </p>
+              <div className="rule-glow my-7" />
+              <p className="hud-label mb-2 text-signal">{FLIGHT_CHECK.label}</p>
+              <p className="text-[0.94rem] leading-relaxed text-muted-foreground">
+                {FLIGHT_CHECK.body}
               </p>
             </div>
-          </div>
-          <div className="mt-9">
-            <Enquiry />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Fair questions ─────────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.06] py-20 sm:py-24">
+        <div className="container">
+          <Reveal>
+            <p className="eyebrow text-cyan">Fair questions</p>
+            <h2 className="mt-3 font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+              The fine print, in plain English.
+            </h2>
+          </Reveal>
+          <div className="mt-10 grid max-w-5xl gap-4 lg:grid-cols-2">
+            {FAIR_QUESTIONS.map((q, i) => (
+              <Reveal key={q.q} delay={i * 45}>
+                <div className="phx-card h-full p-6">
+                  <h3 className="font-heading text-lg font-semibold tracking-tight">{q.q}</h3>
+                  <p className="mt-3 text-[0.9rem] leading-relaxed text-muted-foreground">{q.a}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── The one thing this page still says in words ────────────────── */}
-      <section className="border-t border-white/[0.06] py-16">
+      {/* ── Enquiry ────────────────────────────────────────────────────── */}
+      <section id="enquiry" className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
         <div className="container">
-          <div className="max-w-3xl rounded-2xl border border-signal/25 bg-black/25 p-7 md:p-9">
-            <p className="eyebrow text-[0.6rem] text-signal">{PROOF_POSTURE.eyebrow}</p>
-            <h2 className="mt-3 text-2xl font-bold tracking-tight md:text-3xl">
-              {PROOF_POSTURE.headline}
-            </h2>
-            <p className="mt-4 text-[0.95rem] leading-relaxed text-muted-foreground">
-              {PROOF_POSTURE.body}
-            </p>
-            <p className="mt-4 text-[0.95rem] leading-relaxed text-foreground/90">
-              {PROOF_POSTURE.founding}
-            </p>
-            <p className="mt-6 border-t border-white/[0.07] pt-5 text-[0.9rem] leading-relaxed text-muted-foreground">
-              <span className="font-semibold text-foreground">{FLIGHT_CHECK.label}.</span>{" "}
-              {FLIGHT_CHECK.body}
-            </p>
-          </div>
+          <Reveal>
+            <div className="mx-auto max-w-2xl">
+              <p className="eyebrow text-cyan">Reserve a seat</p>
+              <h2 className="mt-3 font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+                Tell us which operator, and when you want it on shift.
+              </h2>
+              <p className="mt-5 leading-relaxed text-muted-foreground">
+                No call required to get a price — every price is on this page. This goes straight to
+                a human, and if a flight plan at {BRAND.parent.name} would serve you better,
+                that&rsquo;s what you&rsquo;ll be told.
+              </p>
+              <div className="mt-9">
+                <Enquiry />
+              </div>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      {/* Room for the instrument rail, which is fixed and would otherwise sit
-          on top of the last thing anybody reads. */}
-      <footer className="border-t border-white/[0.06] py-14 pb-28">
-        <div className="container grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
-          <div>
-            <a href={BRAND.parent.url} className="text-xl font-bold tracking-[0.12em] text-cyan">
-              {BRAND.parent.name}
-            </a>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              {BRAND.parent.tagline}
-            </p>
-            <a
-              href={`mailto:${BRAND.parent.email}`}
-              className="mt-3 inline-block text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
+      <footer className="border-t border-white/[0.06] py-14">
+        <div className="container space-y-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
+            <a href="#seats" className="transition-colors hover:text-foreground">The seats</a>
+            <a href="#check" className="transition-colors hover:text-foreground">The check</a>
+            <a href="#locked" className="transition-colors hover:text-foreground">The other six</a>
+            <Link href="/upgrades" className="transition-colors hover:text-foreground">All prices</Link>
+            <a href={`mailto:${BRAND.parent.email}`} className="transition-colors hover:text-foreground">
               {BRAND.parent.email}
             </a>
+            <Link href="/legal/terms" className="transition-colors hover:text-foreground">Terms</Link>
+            <Link href="/legal/privacy" className="transition-colors hover:text-foreground">Privacy</Link>
+            <Link href="/login" className="transition-colors hover:text-foreground">Client sign-in</Link>
           </div>
-
-          <div>
-            <p className="eyebrow text-muted-foreground">The deck</p>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li>
-                <Link href="/upgrades" className="text-cyan transition-colors hover:text-foreground">
-                  Upgrades &amp; prices
-                </Link>
-              </li>
-              {DECK.map((d) => (
-                <li key={d.id}>
-                  <a href={`#${d.id}`} className="transition-colors hover:text-foreground">
-                    {d.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
+          <div className="flex flex-col items-center gap-2 border-t border-white/[0.06] pt-6 text-center">
+            <a
+              href={BRAND.parent.url}
+              className="inline-flex items-center gap-1.5 text-sm text-cyan transition-colors hover:text-foreground"
+            >
+              The single-seat desk for {BRAND.parent.name} <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+            <span className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} {BRAND.name} · Built for the autonomous era
+            </span>
           </div>
-
-          <div>
-            <p className="eyebrow text-muted-foreground">Fly</p>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              {PARENT_SERVICES.map((s) => (
-                <li key={s.key}>
-                  <a href={BRAND.parent.url} className="transition-colors hover:text-foreground">
-                    {s.name}
-                  </a>
-                </li>
-              ))}
-              <li>
-                <Link href="/login" className="transition-colors hover:text-foreground">
-                  Client sign-in
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/terms" className="transition-colors hover:text-foreground">
-                  Terms
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/privacy" className="transition-colors hover:text-foreground">
-                  Privacy
-                </Link>
-              </li>
-              <li>
-                <Link href="/legal/msa" className="transition-colors hover:text-foreground">
-                  Services agreement
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="container mt-10 border-t border-white/[0.06] pt-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} {BRAND.name} · an upgrade counter for{" "}
-          <a href={BRAND.parent.url} className="text-cyan hover:underline">
-            {BRAND.parent.name}
-          </a>
         </div>
       </footer>
     </div>

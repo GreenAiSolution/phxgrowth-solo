@@ -5,7 +5,7 @@ import { env } from "@/lib/env";
 /**
  * Short, because the site is short.
  *
- * Two public pages and the legal set. `/` is the instrument deck; `/upgrades`
+ * Two public pages and the legal set. `/` is the flight line; `/upgrades`
  * is the price list, and it is the one most likely to earn a search result —
  * "what does X cost" is a query, and a deck of canvases is not an answer to it.
  * The console and admin are noindex by nature and have nothing to gain from

@@ -738,7 +738,7 @@ model PendingAction {
   clientId String
   client   ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  /// Which build proposed it — job-runner, comeback.
+  /// Which seat proposed it — seat-closer, seat-herald, seat-echo.
   build String
   /// Action kind key. Resolves through ACTION_KINDS in lib/gate.ts.
   kind  String

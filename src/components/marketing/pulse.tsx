@@ -17,7 +17,11 @@ export type PulseEvent =
   | "gap_finder"
   | "instrument"
   | "upgrade_added"
-  | "enquiry_started";
+  | "enquiry_started"
+  /** A seat ticked or unticked on the flight line. */
+  | "seat_toggled"
+  /** The Check sent them to phxgrowth.com instead. The number that matters. */
+  | "routed_out";
 
 export function pulse(event: PulseEvent, detail?: string) {
   try {

@@ -431,80 +431,18 @@ describe("the price list is the catalogue, rendered", () => {
   });
 });
 
-describe("the contents page indexes the deck that exists", () => {
-  /**
-   * The index down the top of the home page is the most-clicked element on the
-   * site, and it is a list of anchors into a component it cannot see. When the
-   * deck was re-ordered, the index kept printing the old numbers against the
-   * new links — nothing errored, because a contents page has no way to tell
-   * that its anchors moved.
-   */
-  async function deckSource(): Promise<string> {
-    const { readFile } = await import("node:fs/promises");
-    return readFile(new URL("../components/marketing/deck.tsx", import.meta.url), "utf8");
-  }
-
-  it("lists the tools in the order the deck renders them", async () => {
-    const { TOOL_IDS } = await import("@/lib/deck");
-    const src = await deckSource();
-    // UP_FRONT then DEEPER, in source order — which is render order.
-    const rendered = [...src.matchAll(/\{\s*id:\s*"([a-z]+)",\s*render:/g)].map((m) => m[1]!);
-    expect(rendered).toEqual(TOOL_IDS);
-  });
-
-  it("numbers them from zero with no gaps and no repeats", async () => {
-    const { DECK_INDEX } = await import("@/lib/deck");
-    const numbered = DECK_INDEX.filter((d) => d.n !== "◇").map((d) => d.n);
-    expect(numbered).toEqual(numbered.map((_, i) => String(i).padStart(2, "0")));
-  });
-
-  it("points every entry at an anchor an instrument actually renders", async () => {
-    const { readdir, readFile } = await import("node:fs/promises");
-    const { DECK_INDEX } = await import("@/lib/deck");
-    const dir = new URL("../components/marketing/", import.meta.url);
-    const sources = await Promise.all(
-      (await readdir(dir))
-        .filter((f) => f.endsWith(".tsx"))
-        .map((f) => readFile(new URL(f, dir), "utf8")),
-    );
-    const all = sources.join("\n");
-    for (const entry of DECK_INDEX) {
-      expect(all, `nothing renders id="${entry.id}" for "${entry.name}"`).toContain(
-        `id="${entry.id}"`,
-      );
-    }
-  });
-
-  it("can still reach the tools it hides", async () => {
-    const { DECK_INDEX } = await import("@/lib/deck");
-    const src = await deckSource();
-    // Three entries link into a closed <details>, which most browsers refuse to
-    // scroll to. Without this handler those were dead links that changed the
-    // URL and moved nothing.
-    expect(DECK_INDEX.some((d) => d.folded)).toBe(true);
-    expect(src, "folded tools are unreachable from the index").toMatch(
-      /closest\("details"\)/,
-    );
-    expect(src).toMatch(/fold\.open = true/);
-  });
-
-  it("keeps the module number out of the instruments themselves", async () => {
-    const { readdir, readFile } = await import("node:fs/promises");
-    const dir = new URL("../components/marketing/", import.meta.url);
-    for (const f of (await readdir(dir)).filter((n) => n.endsWith(".tsx"))) {
-      const src = await readFile(new URL(f, dir), "utf8");
-      // Seven files each printing their own position is seven places to miss
-      // when the order changes — and a duplicate number is visible to a visitor.
-      expect(src, `${f} hardcodes its position in the deck`).not.toMatch(/index=\{\d+\}/);
-    }
-  });
-});
-
 describe("the parent's own numbers are never restated loosely", () => {
   it("quotes the flight-plan fees exactly once each, from the plan data", () => {
     const faq = FAIR_QUESTIONS.find((f) => f.q.includes("performance fee"))!;
-    for (const plan of FLIGHT_PLANS) {
-      const rate = plan.fee.match(/\d+%/)![0];
+    // Wingman is the exception and has to be filtered rather than asserted on:
+    // its fee is "+ $450/mo per extra automation", with no percentage in it at
+    // all. The old version of this loop assumed every tier carried one and
+    // would have thrown on a null match the moment Wingman was added.
+    for (const plan of FLIGHT_PLANS.filter((p) => /%/.test(p.fee))) {
+      // `[\d.]+%` rather than `\d+%`, because Squadron's fee is 3.5% and the
+      // integer-only pattern silently matched the substring "5%" — which then
+      // passed, against a rate the desk does not charge.
+      const rate = plan.fee.match(/[\d.]+%/)![0];
       expect(faq.a, `${plan.name} fee`).toContain(rate);
       expect(faq.a).toContain(plan.name);
     }
@@ -513,7 +451,9 @@ describe("the parent's own numbers are never restated loosely", () => {
   it("names no percentage anywhere that is not one of those fees", () => {
     // The site's whole posture is that it shows no results it has not earned.
     // The parent's fee rates are the sole exception and are enumerated above.
-    const allowed = new Set(FLIGHT_PLANS.map((p) => p.fee.match(/\d+%/)![0]));
+    const allowed = new Set(
+      FLIGHT_PLANS.filter((p) => /%/.test(p.fee)).map((p) => p.fee.match(/[\d.]+%/)![0]),
+    );
     const surfaces = [
       legalProse(),
       FAIR_QUESTIONS.map((f) => `${f.q} ${f.a}`).join(" "),
@@ -522,7 +462,7 @@ describe("the parent's own numbers are never restated loosely", () => {
       UPGRADES.map((u) => `${u.promise} ${u.demandCase} ${u.delivers.join(" ")}`).join(" "),
       BUNDLES.map((b) => `${b.promise} ${b.rationale}`).join(" "),
     ].join("\n");
-    for (const pct of surfaces.match(/\d+%/g) ?? []) {
+    for (const pct of surfaces.match(/[\d.]+%/g) ?? []) {
       expect(allowed.has(pct), `"${pct}" is a claim this site cannot support`).toBe(true);
     }
   });

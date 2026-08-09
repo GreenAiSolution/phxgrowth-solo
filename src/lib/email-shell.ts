@@ -196,7 +196,7 @@ export function renderEmailHtml(o: EmailShellOptions): string {
 
     <tr>
       <td style="padding:18px 4px 0 4px;font-size:11px;line-height:1.7;color:${MUTED};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Helvetica,Arial,sans-serif;">
-        ${escapeHtml(BRAND.name)} — the upgrade counter for
+        ${escapeHtml(BRAND.name)} — the single-seat desk for
         <a href="${BRAND.parent.url}" style="color:${CYAN};text-decoration:none;">${escapeHtml(
           BRAND.parent.name,
         )}</a>

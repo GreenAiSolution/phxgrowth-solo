@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { BRAND } from "@/lib/brand";
-import { PARENT_SERVICES, FLIGHT_CHECK } from "@/lib/upgrades";
+import { UPGRADES, FLIGHT_CHECK } from "@/lib/upgrades";
 import { env } from "@/lib/env";
 
 /**
@@ -34,11 +34,11 @@ const jetbrainsMono = JetBrains_Mono({
  * lives outside the page is the copy nobody remembers to update.
  */
 const DESCRIPTION =
-  `Specialised upgrades that bolt onto your ${BRAND.parent.name} services — ` +
-  `${PARENT_SERVICES.map((s) => s.name).join(", ")}. ` +
-  `Be the business an AI assistant names, own the map pack, answer every call on ` +
-  `the first ring, and measure it on data you actually own. Month to month, ` +
-  `covered by ${FLIGHT_CHECK.label}.`;
+  `${BRAND.parent.name} hires its ten AI operators three ways, from $5,000/mo. ` +
+  `${UPGRADES.length} of them do work that never touches an ad account — Closer on ` +
+  `the phone, Herald on unpaid search, Echo on your reviews, Tower watching the ` +
+  `board. Hire those one at a time from ${(Math.min(...UPGRADES.map((u) => u.price)) / 100).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}/mo, ` +
+  `no media budget required. Month to month, covered by ${FLIGHT_CHECK.label}.`;
 
 /**
  * `metadataBase` is what makes relative OG image paths resolve to absolute URLs.
