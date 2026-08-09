@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { stripe } from "@/lib/stripe";
 import { env } from "@/lib/env";
-import { resolveBasket } from "@/lib/seat-billing";
+import { billingGaps, resolveBasket } from "@/lib/seat-billing";
 import { UPGRADES } from "@/lib/upgrades";
 
 /**
@@ -47,6 +47,20 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // The key is checked before the basket, and the order matters. Price IDs can
+  // be fully configured while the secret key is absent — which is exactly the
+  // state this project shipped in for a while — and in that order the basket
+  // resolves cleanly and the failure surfaces as a generic 502 from the Stripe
+  // call instead of the one message that tells the visitor what to do instead.
+  const gaps = billingGaps();
+  if (gaps.length) {
+    console.error(`[checkout/seat] billing not configured — missing: ${gaps.join(", ")}`);
+    return NextResponse.json(
+      { error: "Card payment isn't switched on yet — send an enquiry and we'll set you up." },
+      { status: 503 },
+    );
   }
 
   const basket = resolveBasket(parsed.data.keys);
