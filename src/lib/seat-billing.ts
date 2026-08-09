@@ -44,9 +44,48 @@ export function crewPriceEnv(key: string): string {
   return `STRIPE_PRICE_CREW_${key.toUpperCase().replace(/-/g, "_")}`;
 }
 
+/* -------------------------------------------------------------------------
+   MODE
+
+   A Stripe price created in test mode does not exist in live mode, and vice
+   versa. So the price IDs and the secret key have to agree about which mode
+   they are in, and nothing in Stripe enforces that — mix them and every
+   checkout fails with "No such price", which reads like a broken site rather
+   than a misconfiguration.
+
+   The obvious way to run a test pass is to swap all nine variables to test,
+   verify, then swap all nine back. That is nine chances to leave one behind,
+   and the failure is silent until somebody tries to buy something.
+
+   So both sets live side by side. Test IDs are stored under a `_TEST` suffix
+   and the mode is read off the secret key itself, which is the one thing that
+   cannot be ambiguous about which mode it is. Flipping the whole site between
+   test and live is then two variables — the key and the webhook secret — and
+   the price IDs are never touched again.
+   ------------------------------------------------------------------------- */
+
+export function isTestMode(): boolean {
+  return (process.env.STRIPE_SECRET_KEY ?? "").startsWith("sk_test_");
+}
+
+/**
+ * The env var to actually read for a given logical name, honouring mode.
+ *
+ * Falls back to the unsuffixed name when no `_TEST` value is set, so a test
+ * key with no test prices behaves exactly as it did before this existed
+ * rather than silently resolving nothing.
+ */
+export function resolvePriceEnv(base: string): string {
+  if (isTestMode() && process.env[`${base}_TEST`]) return `${base}_TEST`;
+  return base;
+}
+
 /** Every env var that has to be set for the whole board to be buyable. */
 export function allPriceEnvNames(): string[] {
-  return [...UPGRADES.map((u) => seatPriceEnv(u.key)), ...BUNDLES.map((b) => crewPriceEnv(b.key))];
+  return [
+    ...UPGRADES.map((u) => resolvePriceEnv(seatPriceEnv(u.key))),
+    ...BUNDLES.map((b) => resolvePriceEnv(crewPriceEnv(b.key))),
+  ];
 }
 
 export interface LineItem {
@@ -91,7 +130,7 @@ export function resolveBasket(keys: string[]): Resolution {
   };
 
   if (crew) {
-    const price = read(crewPriceEnv(crew.key));
+    const price = read(resolvePriceEnv(crewPriceEnv(crew.key)));
     if (!price) return { ok: false, reason: "unconfigured", missing };
     return {
       ok: true,
@@ -104,7 +143,7 @@ export function resolveBasket(keys: string[]): Resolution {
 
   const items: LineItem[] = [];
   for (const s of found) {
-    const price = read(seatPriceEnv(s.key));
+    const price = read(resolvePriceEnv(seatPriceEnv(s.key)));
     if (price) items.push({ price, quantity: 1, label: `${s.name} — single seat`, amount: s.price });
   }
   if (missing.length) return { ok: false, reason: "unconfigured", missing };
@@ -114,17 +153,27 @@ export function resolveBasket(keys: string[]): Resolution {
 
 /** Is billing wired up at all? Used by /api/health and the page's CTA. */
 export function billingConfigured(): boolean {
-  if (!process.env.STRIPE_SECRET_KEY) return false;
-  return allPriceEnvNames().every((n) => Boolean(process.env[n]));
+  return billingGaps().length === 0;
 }
 
 /** Which specific pieces are missing — for the health endpoint, not the public page. */
 export function billingGaps(): string[] {
   const gaps: string[] = [];
-  if (!process.env.STRIPE_SECRET_KEY) gaps.push("STRIPE_SECRET_KEY");
-  if (!process.env.STRIPE_WEBHOOK_SECRET) gaps.push("STRIPE_WEBHOOK_SECRET");
+  const key = process.env.STRIPE_SECRET_KEY ?? "";
+  // The shipped placeholder is `sk_test_...`, which is truthy and therefore
+  // passed a plain presence check while being completely unusable.
+  if (!/^sk_(test|live)_[A-Za-z0-9]{20,}$/.test(key)) gaps.push("STRIPE_SECRET_KEY");
+  if (!process.env.STRIPE_WEBHOOK_SECRET?.startsWith("whsec_")) gaps.push("STRIPE_WEBHOOK_SECRET");
   for (const n of allPriceEnvNames()) if (!process.env[n]) gaps.push(n);
   return gaps;
+}
+
+/** Which mode the site is currently wired to charge in. For /api/health. */
+export function billingMode(): "test" | "live" | "unset" {
+  const key = process.env.STRIPE_SECRET_KEY ?? "";
+  if (key.startsWith("sk_test_")) return "test";
+  if (key.startsWith("sk_live_")) return "live";
+  return "unset";
 }
 
 export { bundleByKey };
