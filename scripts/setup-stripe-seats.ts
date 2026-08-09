@@ -111,9 +111,45 @@ async function main() {
     });
   }
 
-  console.log("\n# ---- paste these into .env, then push them to Vercel ----");
+  // ---- the webhook endpoint ------------------------------------------
+  //
+  // Created through the API rather than left as a dashboard chore, because
+  // the signing secret is only returned at creation time. Doing it by hand
+  // means a human copying a `whsec_` out of a browser, and a webhook whose
+  // secret is wrong fails *silently on Stripe's side* — the site looks fine,
+  // the money arrives, and nobody is ever told a seat was bought.
+  const site = (process.env.NEXT_PUBLIC_APP_URL ?? "https://addtophxgrowth-five.vercel.app")
+    .replace(/\/$/, "");
+  const url = `${site}/api/webhooks/stripe`;
+  const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
+    "checkout.session.completed",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+    "invoice.paid",
+  ];
+
+  console.log("\nWEBHOOK");
+  const existing = await stripe.webhookEndpoints.list({ limit: 100 });
+  const already = existing.data.find((w) => w.url === url && w.status !== "disabled");
+  if (already) {
+    console.log(`  • endpoint exists ${url}`);
+    console.log(
+      `     ↳ its signing secret is only shown once, at creation. If you don't have it,\n` +
+        `       delete ${already.id} in the dashboard and re-run this.`,
+    );
+  } else {
+    const hook = await stripe.webhookEndpoints.create({
+      url,
+      enabled_events: EVENTS,
+      description: "PHX/GROWTH SOLO — seat orders",
+    });
+    console.log(`  ✓ endpoint  ${url}`);
+    if (hook.secret) envLines.push(`STRIPE_WEBHOOK_SECRET=${hook.secret}`);
+  }
+
+  console.log("\n# ---- ENV LINES ----");
   console.log(envLines.join("\n"));
-  console.log("");
+  console.log("# ---- END ENV LINES ----\n");
 }
 
 main().catch((e) => {
