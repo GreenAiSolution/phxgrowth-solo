@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Check, Lock, Minus, Plus, TriangleAlert } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, Lock, Minus, Plus, TriangleAlert } from "lucide-react";
 import {
   BUNDLES,
   LOCKED,
@@ -208,12 +208,52 @@ function LockedCard({ locked }: { locked: (typeof LOCKED)[number] }) {
 function TheCheck({
   picked,
   onClear,
+  canCheckout,
 }: {
   picked: string[];
   onClear: () => void;
+  /**
+   * Whether Stripe is actually wired up, resolved on the server.
+   *
+   * A "Start these seats" button that reliably 503s is worse than no button:
+   * it reads as a broken site rather than a site that takes enquiries, and the
+   * visitor who hits it does not come back to try the form. When billing is
+   * off the enquiry path is promoted to primary and the card copy disappears
+   * — so the page is always honest about what it can actually do right now.
+   */
+  canCheckout: boolean;
 }) {
   const result = React.useMemo(() => checkSeats(picked), [picked]);
   const tone = result.tone;
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  /**
+   * Only seat keys are posted. The server resolves them to Stripe Price IDs
+   * and Stripe reads the amount off its own object, so the number rendered
+   * above is a display of the catalogue rather than an input to a charge.
+   */
+  async function onBuy() {
+    setBusy(true);
+    setError(null);
+    pulse("upgrade_added", picked[0]);
+    try {
+      const res = await fetch("/api/checkout/seat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keys: picked }),
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError(data.error ?? "Could not open checkout. Send an enquiry and we'll sort it.");
+    } catch {
+      setError("Could not reach checkout. Send an enquiry and we'll sort it.");
+    }
+    setBusy(false);
+  }
 
   return (
     <div
@@ -284,13 +324,46 @@ function TheCheck({
       </div>
 
       {picked.length > 0 && !result.blocked ? (
-        <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-white/[0.07] pt-6">
-          <a href="#enquiry" onClick={() => pulse("enquiry_started", "check")} className="pill-primary text-sm">
-            Reserve {picked.length === 1 ? "this seat" : `these ${picked.length} seats`}
-          </a>
-          <button type="button" onClick={onClear} className="pill-ghost text-sm">
-            Clear
-          </button>
+        <div className="mt-7 border-t border-white/[0.07] pt-6">
+          <div className="flex flex-wrap items-center gap-3">
+            {canCheckout ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onBuy}
+                className="pill-primary text-sm disabled:cursor-wait disabled:opacity-70"
+              >
+                {busy ? (
+                  "Opening Stripe…"
+                ) : (
+                  <>
+                    Start {picked.length === 1 ? "this seat" : `these ${picked.length} seats`}
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            ) : null}
+            <a
+              href="#enquiry"
+              onClick={() => pulse("enquiry_started", "check")}
+              className={canCheckout ? "pill-ghost text-sm" : "pill-primary text-sm"}
+            >
+              {canCheckout
+                ? "Or talk to a human first"
+                : `Reserve ${picked.length === 1 ? "this seat" : `these ${picked.length} seats`}`}
+            </a>
+            <button type="button" onClick={onClear} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+              Clear
+            </button>
+          </div>
+          <p className="mt-3.5 text-[0.8rem] leading-relaxed text-muted-foreground">
+            {canCheckout
+              ? "Card on the next screen, handled by Stripe — we never see the number. Month to month, cancel any time, no setup fee."
+              : "No payment taken here. This sends your basket to a human, who comes back with a scope and an invoice."}
+          </p>
+          {error ? (
+            <p className="mt-3 text-[0.85rem] leading-relaxed text-gold">{error}</p>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -301,7 +374,7 @@ function TheCheck({
 /*  The board                                                          */
 /* ------------------------------------------------------------------ */
 
-export function FlightLine() {
+export function FlightLine({ canCheckout }: { canCheckout: boolean }) {
   const [picked, setPicked] = React.useState<string[]>([]);
 
   const toggle = React.useCallback((key: string) => {
@@ -367,7 +440,7 @@ export function FlightLine() {
                 , it says so and links you there.
               </p>
               <div className="mt-8">
-                <TheCheck picked={picked} onClear={() => setPicked([])} />
+                <TheCheck picked={picked} onClear={() => setPicked([])} canCheckout={canCheckout} />
               </div>
             </div>
           </Reveal>

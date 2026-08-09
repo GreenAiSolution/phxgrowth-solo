@@ -19,6 +19,7 @@ import { Wordmark } from "@/components/marketing/site-chrome";
 import { SystemField } from "@/components/marketing/system-field";
 import { Reveal } from "@/components/marketing/fx";
 import { FlightLine } from "@/components/marketing/flight-line";
+import { billingConfigured } from "@/lib/seat-billing";
 
 /**
  * THE SINGLE-SEAT DESK
@@ -235,7 +236,7 @@ export default function Home() {
       </section>
 
       {/* ── The board, the Check, and the six locks ────────────────────── */}
-      <FlightLine />
+      <FlightLine canCheckout={billingConfigured()} />
 
       {/* ── What a seat is not ─────────────────────────────────────────── */}
       <section className="border-t border-white/[0.06] py-20 sm:py-24">
