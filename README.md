@@ -1,504 +1,79 @@
-# PHX/GROWTH PLUS
+# PHX/GROWTH SOLO
 
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Next.js 14](https://img.shields.io/badge/Next.js-14-black)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)
-![CI](https://img.shields.io/badge/CI-typecheck%20%C2%B7%20lint%20%C2%B7%20test%20%C2%B7%20build-informational)
+**Hire one PHX/GROWTH operator. Not the whole crew.**
 
-**The upgrade counter for [PHX/GROWTH](https://phxgrowth.com) — a production
-Next.js storefront plus a multi-tenant client platform, built on one rule:
-every number on the page is resolved from a single tested catalogue, never
-typed by hand.** Deployed on Vercel with a Neon Postgres database.
+Live: https://phxgrowth-solo.vercel.app
 
-## At a glance
+phxgrowth.com sells ten named AI operators, but only in bundles — Pilot $5,000/mo, Squadron $12,500/mo, Fleet Command $30,000/mo. Their own Agents page puts it as *"10 operators. Three ways to hire them."*
 
-- **One-page public storefront** selling upgrades that bolt onto the parent
-  brand's services, with machine-checked honesty rules (below).
-- **Signed-in client platform** — agent workspace, ad dashboards, Spend Watch
-  alerts, morning brief, requests, reports, Stripe billing — multi-tenant with
-  `CLIENT`/`ADMIN` roles.
-- **Autonomous night shift** — an hourly cron runs agents, distills a morning
-  brief, and watches ad spend, gated behind `CRON_SECRET`.
-- **Semantic recall** — pgvector embeddings + hybrid search over client data.
-- **AI-native by design** — the whole offer is machine-readable at
-  `/api/catalogue`, served over MCP at `/api/mcp`, and the codebase itself is
-  explorable through a bundled [repo-introspection MCP server](mcp-server/).
-- **Guardrail test suite** — 27 test files that fail the build on hand-typed
-  prices, catalogue overlap with the parent, missing security headers, or a
-  README claim the repo doesn't honour.
+This is the fourth way: one operator at a time.
 
-**The public site is one page.** PHX/GROWTH — "the autonomous media buyer that
-flies your ad spend to profit" — sells three à la carte services (Premium AI
-Ads, AI Employees, Website Creation) and three managed flight plans on top of
-them (Pilot, Squadron, Fleet Command), flown by a roster of ten named
-operators. This property is the branch site: it sells five specialised
-upgrades that bolt onto those services, chosen because demand for each is
-visibly rising into 2027, **and three deluxe stacks that the main site does not
-carry** — including the largest ticket either property sells.
+It works because PHX/GROWTH is a **media buying desk**, so every tier is priced against managed ad spend. That strands four operators whose work never touches an ad account — Closer answers the phone, Herald wins unpaid search, Echo works reviews, Tower watches the board — behind a $30,000/mo tier. Those four sell here from $590/mo, with no ad budget required.
 
-`src/lib/upgrades.ts` is the entire public catalogue, and it carries a copy of
-everything PHX/GROWTH publicly promises: the three services' bullet lists, the
-ten named operators, the twelve-item Manifest, the AOV/LTV revenue levers, the
-four automation loops and the flagship engagement. `upgrades.test.ts` checks
-every upgrade against all of it, on distinctive-word overlap:
+The other six appear on the page but are **not for sale**, each with the honest reason and a link to the phxgrowth.com tier that unlocks it. That ratio is deliberate: a page mostly composed of reasons to buy from someone else is one you can believe about the four things it does sell.
 
-1. **Attached** — every upgrade names a real PHX/GROWTH service.
-2. **Additive vs the service** — nothing a service already lists.
-3. **Additive vs the roster** — nothing one of the ten operators already does.
-4. **Additive vs the Manifest, levers, loops and flagship** — nothing the ad
-   desk or the automation spine already manages, and no upgrade may borrow a
-   word from the flagship's own engagement list.
-
-Those rules have removed seven upgrades so far, and every one looked obviously
-additive until the parent's own words were sitting in the same file. Herald
-already ships pages and watches the map pack; Echo already runs reviews; Closer
-already works email, SMS and DM; the Manifest already covers server-side
-tracking, offer and price testing, and the landing page. The floor for
-"upgrades per service" has been lowered twice rather than padded — Premium AI
-Ads now holds exactly one, because the desk states plainly that it doesn't make
-your ads, and that is the only gap left on that service.
-
-The check is verified non-vacuous by re-adding a cut upgrade and confirming it
-fails. That found a real hole: a Manifest-only check let an offer lab through,
-because item 07 is terse while the detail that kills it lives in the AOV lever.
-A partial copy of the parent's scope is worse than none, because it reads as a
-check that passed.
-
-**No outcome claims, anywhere.** PHX/GROWTH's results page labels every figure
-"representative" and states plainly that the case studies aren't up yet. An
-upgrade counter quoting hard numbers next to that page would be the less honest
-of the two properties, so this one says so in a section of its own and offers a
-founding rate instead. A test scans every piece of page copy and rejects any
-percentage that isn't one of the parent's real 8/6/4% fee rates, plus any
-multiple or guaranteed-results phrasing.
-
-Design, typography and voice are taken from phxgrowth.com rather than invented:
-the `PHX/GROWTH` wordmark with a gold PLUS chip, Inter, the cyan → violet →
-magenta gradient with gold reserved for apex and green for the guarantee, the
-wide-tracked section eyebrow, the homepage's bordered hero pill with its live
-dot, the dot-separated credential strip, gradient pill buttons, per-service
-price colours, and the aviation vocabulary throughout. The 30-Day Flight Check
-is quoted from their page rather than replaced with a different promise.
-
-Behind the page the client platform is unchanged and still runs: sign-in, the
-agent workspace, ad dashboards, the Spend Watch, the morning brief, requests,
-reports and Stripe billing, plus an admin console. Those surfaces are for
-existing clients and are not part of the pitch.
+> **Read [HANDOVER.md](./HANDOVER.md)** for the full picture — architecture, the two rules not to break, Stripe state, and known issues.
 
 ---
 
-## Tech stack
+## Deploying to Vercel
 
-| Concern     | Choice |
-|-------------|--------|
-| Framework   | Next.js 14 (App Router, TypeScript) — single Vercel deploy |
-| Database    | PostgreSQL + Prisma (Vercel Postgres or Neon) |
-| Auth        | Auth.js (NextAuth v5) — email magic link + Google OAuth; roles `CLIENT` / `ADMIN` |
-| Billing     | Stripe subscriptions + Customer Portal + webhooks |
-| AI          | Anthropic API (`claude-sonnet-4-6`) via server-side route handlers only |
-| UI          | Tailwind CSS + shadcn/ui-style primitives + Recharts |
-| Integrations| Zapier Catch Hook → HubSpot via outbound webhooks |
-| Agent surface| MCP over HTTP at `/api/mcp` + a stdio wrapper, no SDK dependency |
+Import this repo as a new Vercel project. Framework preset **Next.js**, defaults are correct.
 
-The Anthropic key is **never** exposed client-side — all model calls flow
-through `/api/agents/[agentSlug]/run` and `/api/reports/generate`.
+### Environment variables
 
----
+Only three are needed for the marketing site and checkout to work:
 
-## Architecture
+| Variable | Needed for | Notes |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | Checkout | `sk_test_…` or `sk_live_…`. **The mode of this key decides which price IDs get used.** |
+| `STRIPE_WEBHOOK_SECRET` | Order notifications | `whsec_…` from the webhook endpoint for that same mode |
+| `NEXT_PUBLIC_APP_URL` | Checkout redirects, canonical tags, sitemap | The project's own URL, no trailing slash |
 
-```mermaid
-flowchart LR
-    subgraph Public
-        M["/(marketing) one-page site"]
-        U["/upgrades price list"]
-        CAT["/api/catalogue JSON"]
-        MCP["/api/mcp (MCP over HTTP)"]
-    end
-    subgraph Catalogue["src/lib/upgrades.ts — single source of truth"]
-        T["upgrades.test.ts + consistency.test.ts\n(attached · additive · no hand-typed prices)"]
-    end
-    subgraph Platform["Signed-in platform"]
-        APP["/app client console"]
-        ADM["/admin console"]
-        CRON["/api/cron hourly night shift + Spend Watch"]
-    end
-    DB[("Postgres + pgvector\n(Prisma, Neon)")]
-    STRIPE["Stripe subscriptions + webhooks"]
-    AI["Anthropic API (server-side only)"]
+Plus the seven price IDs for whichever mode you're in — and both sets can be present at once:
 
-    Catalogue --> M & U & CAT & MCP
-    APP & ADM & CRON --> DB
-    CRON --> AI
-    APP --> STRIPE --> DB
+```
+STRIPE_PRICE_SEAT_CLOSER          STRIPE_PRICE_SEAT_CLOSER_TEST
+STRIPE_PRICE_SEAT_HERALD          STRIPE_PRICE_SEAT_HERALD_TEST
+STRIPE_PRICE_SEAT_TOWER           STRIPE_PRICE_SEAT_TOWER_TEST
+STRIPE_PRICE_SEAT_ECHO            STRIPE_PRICE_SEAT_ECHO_TEST
+STRIPE_PRICE_CREW_FRONT_DESK      STRIPE_PRICE_CREW_FRONT_DESK_TEST
+STRIPE_PRICE_CREW_UNPAID_CREW     STRIPE_PRICE_CREW_UNPAID_CREW_TEST
+STRIPE_PRICE_CREW_FULL_BOARD      STRIPE_PRICE_CREW_FULL_BOARD_TEST
 ```
 
-The public storefront and the signed-in platform share a deploy but not a
-price list — tests enforce the wall between them (see below).
+**Why both sets.** A Stripe price created in test mode does not exist in live mode. Mix them and every checkout fails with `No such price` — with a green deploy, a page that looks fine, and the error surfacing only when a real customer clicks buy. So the app reads the mode off `STRIPE_SECRET_KEY` and picks the matching set. Switching the whole site between test and live is those two secrets and nothing else; the price IDs never move.
+
+### Also present in this repo
+
+The client platform this was built alongside — agent workspace, night-shift briefs, ad-ops, gate approvals — needs `DATABASE_URL` (Postgres + pgvector), `AUTH_SECRET`, `ANTHROPIC_API_KEY`. **None of it is required by the SOLO marketing site or its checkout.** Those routes will error without their variables; the public site will not.
+
+If you only want SOLO, HANDOVER.md lists the ~7 files worth transplanting.
 
 ---
 
-## MCP servers (AI-native repo)
+## Running locally
 
-This repository exposes **two** Model Context Protocol surfaces, one for the
-business and one for the codebase:
-
-| Server | What it serves | Transport |
-| --- | --- | --- |
-| `/api/mcp` (`src/lib/mcp.ts`) + [`phxgrowth-plus-mcp-server/`](phxgrowth-plus-mcp-server) | The **live catalogue**: `list_catalogue`, `get_upgrade`, `quote_bundle`, `quote_stack`, `upgrades_for_service`, `proof_posture`. The stdio wrapper proxies the deployed endpoint so a price is never copied. | HTTP + stdio proxy |
-| [`mcp-server/`](mcp-server) | The **codebase**: `get_project_overview`, `get_route_map`, `get_db_schema`, `list_guardrail_tests`, `get_env_reference`, `search_source` — every tool reads the working tree at call time. | stdio |
+Node 20+ required (Node 18 will not build).
 
 ```bash
-# Explore the codebase from Claude Code
-cd mcp-server && npm install && cd ..
-claude mcp add addtophxgrowth -- node mcp-server/server.mjs
-```
-
-A root [`.mcp.json`](.mcp.json) registers the introspection server for clients
-that support project-scoped MCP config. See
-[`mcp-server/README.md`](mcp-server/README.md) for the full tool reference.
-
----
-
-## Local setup
-
-```bash
-# 1. Install
 pnpm install
-
-# 2. Configure env
 cp .env.example .env
-#    Fill in DATABASE_URL, AUTH_SECRET (openssl rand -base64 32), and
-#    at least one auth provider (GOOGLE_* or EMAIL_SERVER_*).
-
-# 3. Create the schema + seed demo data
-pnpm prisma:generate
-pnpm prisma:push          # or: pnpm prisma migrate dev
-pnpm db:seed
-
-# 4. Run
-pnpm dev                  # http://localhost:3000
+pnpm dev
 ```
 
-### Seeded accounts
-
-| Role   | Email                     | Plans |
-|--------|---------------------------|-------|
-| Admin  | `admin@phxgrowth.com`   | — |
-| Client | `demo1@phxgrowth.com`   | Scale (agents) + Operate (ad-ops), 90 days of metrics |
-| Client | `demo2@phxgrowth.com`   | Launch (agents) |
-| Client | `demo3@phxgrowth.com`   | Command (agents) + roofing pack, seeded leads, closed deals, and a finished morning brief |
-
-Demo client #1 also carries per-account budgets and targets plus a degraded
-week of Meta data, so a fresh seed produces real Spend Watch alerts on
-`/app/ads` — generated by `runSpendWatch`, not written by hand.
-
-Sign in with the **email magic link** (configure SMTP) or **Google** using
-these addresses. Roles are set by the seed; new Google sign-ins default to
-`CLIENT`.
-
----
-
-## Stripe (test mode)
+Tests:
 
 ```bash
-# 1. Create Products + Prices for all six plans and print the env lines
-STRIPE_SECRET_KEY=sk_test_... pnpm stripe:setup
-#    → paste the printed STRIPE_PRICE_* lines into .env
-
-# 2. Sync the price IDs into the DB catalog
-pnpm db:seed
-
-# 3. Forward webhooks locally
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-#    → copy the printed whsec_... into STRIPE_WEBHOOK_SECRET
-
-# 4. Trigger a test event
-stripe trigger checkout.session.completed
+pnpm vitest run     # 615 passing
 ```
 
-The webhook handler reconciles `checkout.session.completed`,
-`customer.subscription.updated`, `customer.subscription.deleted`, and
-`invoice.paid`. **The DB `Subscription` row is the source of truth** for all
-feature gating.
+The tests encode the pricing rules, not just the code — `src/lib/upgrades.test.ts` will fail you for selling a seat cheaper than the parent's entry tier, for a crew priced above its own parts, or for claiming a statistic. Run them before changing any number.
 
 ---
 
-## Deploy to Vercel
+## The two rules
 
-1. Push this repo; import this repository as the Vercel
-   project root.
-2. Add a Postgres database (Vercel Postgres or Neon) and set `DATABASE_URL`.
-3. Set every variable from `.env.example` in Vercel project settings
-   (Production + Preview). Set `NEXT_PUBLIC_APP_URL` to your deployed URL.
-4. Add the Stripe webhook endpoint `https://<your-app>/api/webhooks/stripe`
-   in the Stripe dashboard and set `STRIPE_WEBHOOK_SECRET`.
-5. Add a build step to run migrations: set the Vercel build command to
-   `prisma migrate deploy && next build` (or run `prisma db push` once).
-6. Configure the Google OAuth redirect URI:
-   `https://<your-app>/api/auth/callback/google`.
+**1. `checkSeats()` is allowed to lose the sale.** It runs live as the visitor ticks seats and routes them to phxgrowth.com whenever a tier is genuinely the better buy. Tower selected alone returns `blocked: true` and the page refuses to sell it — a commander with nothing to command is a monitoring product for an empty room. Remove that and it becomes an ordinary store.
 
-`NEXT_PUBLIC_APP_URL` is no longer load-bearing for identity: `env.siteUrl`
-falls back to Vercel's own `VERCEL_PROJECT_PRODUCTION_URL`, so a deploy
-self-identifies correctly with no dashboard step. Set it anyway if the site
-sits behind a domain Vercel doesn't know about. `/api/health` reports which
-source answered.
-
----
-
-## Two price lists, one wall between them
-
-Worth knowing before you touch anything commercial: this repository contains
-two catalogues, and only one of them is the business.
-
-| | What it is | Prices | Who sees it |
-|---|---|---|---|
-| `src/lib/upgrades.ts` | **The business.** Five upgrades and three bundles bolting onto the parent's services. | $1,600–$9,900/mo | Everyone. The page, the emails, the contract, `/api/catalogue`. |
-| `src/lib/catalog.ts` | **Legacy console.** Six plans on two product lines that no longer exist. | $1,297–$7,997/mo | Signed-in users only. |
-
-The console's plan keys are woven through the entitlement, capacity,
-spend-watch and night-shift engines, so retiring it is a migration rather than
-a rename — it is deliberately left alone rather than half-changed.
-
-What is not optional is the wall. `src/lib/legal.ts` imported `catalog.ts`, and
-that one import is how the Terms and MSA — linked from the footer of a page
-selling upgrades — came to describe "two lines of service: AI Automation Agents
-and Ad Operations Management" and quote six monthly fees this business does not
-charge. A prospect who clicked "Terms" was reading a contract for a different
-company, and the Terms contradicted the page's own FAQ about who invoices them.
-
-`consistency.test.ts` now fails the build if any public surface imports
-`catalog.ts`, and asserts that every price quoted in the legal set is a price
-the page actually offers.
-
----
-
-## Architecture notes
-
-- **The public catalogue** (`src/lib/upgrades.ts`) — the three PHX/GROWTH
-  services, their three managed flight plans, and the upgrades that bolt onto
-  each, with the demand argument for every one. `upgrades.test.ts` enforces
-  attached and additive (above) plus the rules that keep the page honest: each
-  service keeps at least one upgrade, each group is listed
-  most-expensive-first, every upgrade costs less than the service it upgrades,
-  gold is spent exactly once, the stated performance fees match the parent's
-  real 8/6/4%, and **no copy anywhere quotes a percentage or an "N× better"
-  claim** — the pitch of the page is that it tells the truth about what it
-  sells, and a fabricated statistic is the easiest thing in the world to add
-  later without thinking.
-- **The conversion path tells the truth** — `/api/reserve` returns
-  `delivered: true|false`, not a bare `ok`. It used to always report success,
-  which meant that when the production Vercel project stored the Resend key as
-  `resend` (the code read `RESEND_API_KEY`) every visitor saw "cleared for
-  pre-flight" while the lead went into a log line. `env.ts` now accepts the
-  mis-named aliases so the live deploy works untouched, `/api/health` returns
-  503 and names which env var supplied each channel, and when nothing delivers
-  the form hands the visitor a `mailto:` with their whole selection already
-  written into it. A false success on the only conversion path is worse than an
-  error, because nobody ever finds out.
-- **First-party analytics** (`/api/pulse` + `components/marketing/pulse.tsx`) —
-  page view, scroll-depth milestones, gap-finder outcomes and upgrade adds, via
-  `sendBeacon` to our own origin. No vendor, no cookie, no consent banner, and
-  a malformed beacon returns 204 rather than an error, because measurement must
-  never be able to affect the person browsing.
-- **CI** (`.github/workflows/ci.yml`) — typecheck, lint, the full test suite and
-  a secret-free build on every push. The additive rules are the only thing
-  standing between the catalogue and selling a client something they already
-  pay for; a guardrail that runs when someone remembers to run it is not one.
-- **Security headers** (`next.config.mjs`, `src/lib/headers.test.ts`) — the site
-  shipped with none. CSP, `X-Frame-Options`, `nosniff`, a referrer policy,
-  `Permissions-Policy` and HSTS now go out on every response, and
-  `poweredByHeader` is off. The CSP keeps `'unsafe-inline'` on `script-src`
-  deliberately — Next's App Router injects inline bootstrap scripts, and
-  removing it means per-request nonces, which means every page goes dynamic.
-  The comment in the config argues the trade rather than pretending the policy
-  is stricter than it is. Tests assert each header, because a missing security
-  header breaks nothing until the day it matters.
-- **The site knows its own address** (`env.siteUrl`, `src/lib/crawlable.test.ts`)
-  — `robots.txt` and `sitemap.xml` were both serving `http://localhost:3000` to
-  Googlebot, and `metadataBase` was pointing every share preview's OG image at
-  localhost too. Neither errored; the site was just invisible. `siteUrl` reads
-  `NEXT_PUBLIC_APP_URL`, then Vercel's own domain variables, so a deploy
-  self-identifies with no dashboard step, and both routes are `force-dynamic`
-  so the value is resolved per request rather than frozen at build time — the
-  original bug was a build-time value being debugged as a runtime one.
-  `siteUrl` is deliberately distinct from `publicUrl`: a link only has to be
-  clickable, so `publicUrl` may borrow phxgrowth.com; a sitemap has to be true,
-  so `siteUrl` must never borrow anything. Swapping one for the other is
-  test-enforced, because the first attempt at this fix did exactly that and
-  produced a sitemap claiming the parent's URLs as ours.
-- **The catalogue is machine-readable** (`/api/catalogue`) — the whole offer as
-  JSON, read-only, and explicitly allowed in `robots.txt` against the general
-  `/api/` block. This site sells Answer Engine Visibility; publishing our own
-  offer as structured facts is the least we can do while charging for it. It is
-  also the single source the MCP server reads, so there is never a second copy
-  of a price.
-- **Bundles are priced server-side** (`BUNDLES` in `upgrades.ts`) — the browser
-  posts a bundle *key*, never a total, and the endpoint prices it from its
-  members. Tests enforce what a bundle has to be: at least two real members,
-  cheaper than the à la carte sum, and dearer than its own dearest member (a
-  "bundle" that undercuts one of its parts is a pricing bug that lets somebody
-  buy the stack to get one item at a discount). Exactly one apex bundle, and it
-  must be the largest ticket on the site.
-- **The Leak Calculator** (`src/lib/leak.ts`) — the parent's Growth Calculator
-  projects forward from ad spend; this runs backwards from calls already
-  arriving, so it needs no model and makes no claim about our performance.
-  Every output is the visitor's own five numbers multiplied. The recovery
-  assumption is a slider rather than a hidden constant, defaults below 1, and
-  `coverage` is allowed to come out under 1 — in which case the tool says
-  "don't buy it". Tested for the underwater branch, for clamping, and for never
-  returning Infinity into a price panel.
-- **One conversion path** — `/api/reserve` takes the enquiry. It recomputes the
-  quote from `UPGRADES` rather than trusting any total the browser sent, and
-  deliberately touches no database, no auth and no Stripe, because those are the
-  three things most likely to be unconfigured on a fresh deploy and this is
-  precisely the path that has to survive that.
-- **Multi-tenancy** — every client-owned row carries `clientId`; queries resolve
-  the tenant through `src/lib/tenancy.ts` (`requireClient` / `requireAdmin`),
-  never trusting a client-supplied id. Admins may pass an explicit `clientId`
-  for view-as; clients are always locked to their own profile.
-- **Entitlements / metering** — `src/lib/entitlements.ts` checks the active
-  subscription, whether the agent is unlocked, and remaining runs this billing
-  period before any model call, and records one `UsageRecord` per completed run.
-  Plan limits are never read directly: everything goes through `resolveLimits`,
-  which folds `ClientEntitlement` rows (granted capacity add-ons) on top via the
-  pure `applyCapacity` in `src/lib/capacity.ts`. `null` means unlimited and stays
-  unlimited. Admins grant capacity on `/admin/clients/[clientId]`.
-- **Agent prompts live in the DB** (`AgentDefinition` + per-client
-  `AgentPromptOverride`) — never hardcoded at call time. Edit them in
-  `/admin/agents`.
-- **Ad ingestion is source-tagged** (`MANUAL` / `CSV` / `API`) so a Meta/Google
-  Ads sync can be added later with no schema change.
-- **Validation** — Zod on every API input. Agent routes are rate-limited
-  (`src/lib/rate-limit.ts`; swap for Upstash in multi-instance prod).
-- **Notifications** (`src/lib/notify.ts`) — pure, tested templates plus a
-  delivery function that never throws. Requests, replies, morning briefs,
-  critical Spend Watch findings and cockpit builds all notify. Mirrors to the
-  Zapier hook as well as SMTP, and degrades to a log line when neither is
-  configured. Set `AGENCY_NOTIFY_EMAIL` for agency-bound mail.
-- **Agency signals** (`src/lib/signals.ts` -> `/admin/signals`) — cross-client
-  triage listing only what is wrong, with silently-broken states (stalled
-  sweeps, failed briefs) ranked above loud ones (critical alerts, which have
-  already emailed the client). `rankSignals` is pure and tested.
-- **Cockpit configurator** (`src/lib/cockpit.ts` -> `/cockpit`) — signature
-  builds plus a custom configurator over both product lines, add-ons and the
-  industry pack. `priceCockpit` is pure and is the only place any total is
-  computed, so the running total, the build sheet and the invoice cannot
-  disagree. Picking all three foundations applies the bundle price rather than
-  the higher a la carte sum. `/api/cockpit` files the build sheet as a Request
-  and hands the primary line to `/api/checkout`; it never creates two
-  subscriptions from one click.
-- **Vertical packs** (`src/lib/verticals.ts`) — per-trade content that overrides
-  the three ASSET bodies and selected PLAYBOOK prompts at provisioning time. A
-  pack can never change *which* modules a tier provisions, only what they say;
-  `verticals.test.ts` enforces that every override names a real module.
-- **Spend Watch** (`src/lib/spend-watch.ts`) — the ad-ops line's unattended pass.
-  Seven checks (pacing over/under, cost-per-lead drift, delivery gap, creative
-  fatigue, cost-per-sale breach, ROAS decline, spend anomaly), each a pure
-  function of daily metrics plus the account's targets. Which checks run is
-  derived from the MONITOR modules in that tier's blueprint, so the page selling
-  the feature and the code running it cannot disagree. A missing target means
-  the check is skipped, never guessed. Findings whose condition clears are
-  auto-resolved, and the `@@unique([adAccountId, kind, dateBucket])` constraint
-  stops a daily sweep re-raising yesterday's problem as new.
-- **Night shift** (`src/lib/night-shift.ts`) — an hourly Vercel cron
-  (`vercel.json` → `/api/cron/night-shift`) walks every Scale/Command tenant and
-  runs the ones that are due. Command runs nightly, Scale weekly, Launch not at
-  all. The brief itself is assembled by a pure function from scored data, so a
-  model outage costs the narrative summary and never the call list. Unattended
-  runs still go through the same entitlement meter as interactive ones.
-- **Lead intake** (`/api/intake/[clientId]`) — public, per-tenant token in
-  `x-intake-token` or `?token=`, compared in constant time. Leads land unscored;
-  scoring happens on the night shift so a slow model call can never make a
-  client's website form time out.
-- **The Creative Genome** (`src/lib/genome/`) — the part of the creative loop
-  that compounds. Every ad is coded against a **closed vocabulary** of six axes
-  (`taxonomy.ts`); an open one cannot be pooled, because "question hook" and
-  "asks the reader something" are the same ad and two rows. Effects are
-  estimated **within each account first** — that account's creatives carrying a
-  device against its own creatives without it — and only then pooled across
-  accounts by DerSimonian-Laird random effects (`pool.ts`). That ordering is
-  the whole design: the naive between-account comparison is not merely noisier
-  but can be *backwards*, and `assemble.test.ts` builds exactly that book of
-  business and asserts both that the estimator recovers the true direction and
-  that the naive version gets it wrong. Nothing is stated below
-  `MIN_ACCOUNTS` (4) independent advertisers — one shop's habit is not a fact
-  about advertising — every result carries its interval, and `describeEffect`
-  says "associated with" and never "causes", because creatives are not randomly
-  assigned and no amount of pooling fixes that. A client's own contrast is
-  shrunk toward the book by empirical Bayes, so a young account is told what
-  the book knows and a mature one is told what it has proven; where the two
-  genuinely disagree the client is told to trust their own. Feeds MUSE-9 ahead
-  of every copywriting run, exactly as system memory feeds the qualifier.
-- **The eval harness** (`src/lib/evals/`) — this repo will fail a build over one
-  fabricated percentage on the marketing page, and had **nothing** with an
-  opinion about what the model writes into a client's advertisement. That
-  asymmetry is what the harness closes: `noFabricatedStats` is the same rule
-  from `upgrades.test.ts`, ported onto model output. Four surfaces are graded —
-  the qualifier reply, the qualifier against deals that actually closed, the
-  creative coder, and ad copy. Scorers are pure, and where there is ground
-  truth they use it: `discrimination` is AUC, because "did it say 82 when a
-  human would have said 85" punishes disagreement rather than error, and a
-  qualifier that scores every lead 70 has perfect schema compliance and no
-  opinion. `calibration` is separate because a model can rank perfectly and
-  still be confidently wrong about the rate. CI replays fixtures — deterministic,
-  no API key, and honest that it measures *this repository's* parsers and
-  scorers rather than the model. `pnpm evals:live` is the half that measures the
-  model. Every scorer has a non-vacuity test proving it fails on the thing it
-  exists to catch, and `gate` itself has one proving it can fail.
-- **The MCP server** (`src/lib/mcp.ts`, `/api/mcp`,
-  `phxgrowth-plus-mcp-server/`) — the catalogue route has named this directory
-  since the day it shipped and the README called it "the single source the MCP
-  server reads". There was no server and no such directory. A component
-  described in a README and absent from the repository is the same defect as a
-  Terms page quoting a fee the business does not charge, so `mcp.test.ts` now
-  enforces the claim. Six tools over the same facts the page renders; JSON-RPC
-  hand-rolled rather than pulling in an SDK, because three methods is cheaper
-  than a dependency in a codebase that installs and runs with nothing
-  configured. `proof_posture` is a tool of its own so an assistant can find the
-  no-results-claims position *before* inventing a figure to go with a price,
-  and a test asserts no tool output can quote a percentage that is not one of
-  the real 8/6/4% fee rates. The stdio wrapper holds no prices — it proxies, so
-  a price change on the site is live in it with no reinstall — and it refuses
-  to start without an explicit URL rather than defaulting to a guessed host,
-  which is the sitemap-serving-localhost bug in its next available disguise.
-- **System memory** (`src/lib/memory.ts`) — closed deals a client logs are
-  distilled into `MemoryEntry` rows by a pure `computeCalibration`, then injected
-  ahead of every agent run. Nothing is stated below `MIN_EVIDENCE` closed deals,
-  confidence is shown rather than hidden, and the client can mute any fact they
-  disagree with — a refresh never un-mutes.
-
-## Unattended runs
-
-One hourly cron drives both lines: the night shift (agents → morning brief) and
-the Spend Watch (ad-ops → alerts). Each rosters off its own product line, so a
-client on one line, the other, or both is handled without special-casing.
-
-```bash
-# Local: the cron route is a plain authenticated GET
-CRON_SECRET=$(openssl rand -base64 32)   # also set this in .env and in Vercel
-curl -H "Authorization: Bearer $CRON_SECRET" localhost:3000/api/cron/night-shift
-```
-
-On Vercel, `CRON_SECRET` is sent automatically to scheduled invocations. With no
-`CRON_SECRET` set the route refuses every request rather than leaving an open
-endpoint that spends the Anthropic budget.
-
-Feeding it leads:
-
-```bash
-curl -X POST "$NEXT_PUBLIC_APP_URL/api/intake/$CLIENT_ID?token=$INTAKE_TOKEN" \
-  -H 'content-type: application/json' \
-  -d '{"name":"Marcy Bell","email":"marcy@example.com","message":"Storm damage"}'
-```
-
-The client's own URL is shown to them on `/app/brief`.
-
-See [`PROGRESS.md`](./PROGRESS.md) for the phase-by-phase build log and the
-current state of each phase.
-
----
-
-## License
-
-[MIT](LICENSE) © 2026 GreenAI Solutions.
+**2. No price ever crosses the wire.** The checkout endpoint accepts seat *keys* only. Prices resolve server-side to Stripe Price IDs and Stripe reads the amount from its own object. A posted price is user input.
