@@ -408,6 +408,92 @@ export const PROOF_POSTURE = {
 } as const;
 
 /**
+ * THE RECEIPTS
+ *
+ * DIRECTION
+ *   `PROOF_POSTURE` says there are no results yet and refuses to invent any.
+ *   Standing alone that is only a confession, and a visitor who has just been
+ *   told "we have nothing to show you" is entitled to ask why they should stay
+ *   on the page at all. This is the answer to that question.
+ *
+ *   The move is to stop asking to be believed and hand over things the visitor
+ *   can check without us. Every entry below is verifiable by the reader in
+ *   under a minute, either on this page or on somebody else's — two of them
+ *   point at a competitor and one points at our own source code.
+ *
+ * THE BAR
+ *   An entry may only appear here if a stranger with no access to us can
+ *   confirm it. That rules out anything about our size, our team, our office,
+ *   our client count or our history, none of which a visitor can check and all
+ *   of which are the usual furniture of a page like this. It also rules out
+ *   photography of people and premises: an image asserts a fact about the
+ *   world, and this page does not make assertions it cannot support.
+ *
+ *   `check` is the instruction, not a claim — it has to describe an action the
+ *   reader takes. If an entry cannot be written that way it does not belong
+ *   here. `upgrades.test.ts` enforces the shape, the absence of statistics and
+ *   the presence of a destination on every one.
+ *
+ * DELIBERATELY ABSENT
+ *   Counts. An earlier draft opened with the size of the test suite, which is
+ *   true today, goes stale on the next commit, and would have been wrong three
+ *   times already by the same mechanism that took the hardcoded number out of
+ *   `THESIS`. The link goes to the test instead — it can be read, and it
+ *   cannot rot into a lie.
+ */
+export interface Receipt {
+  /** The short label on the card. */
+  label: string;
+  /** What is true, stated flatly and without adjectives. */
+  claim: string;
+  /** The action the reader takes to confirm it. Always an instruction. */
+  check: string;
+  /** Where that action happens. On-page anchor, or somebody else's site. */
+  href: string;
+  /** Whether `href` leaves this property. Drives the icon and rel attrs. */
+  external?: boolean;
+}
+
+export const RECEIPTS_INTRO = {
+  eyebrow: "Instead of proof",
+  headline: "Four things you can check yourself, right now.",
+  body: "Nothing here asks for trust. Two of these are on the board above, one is on our competitor’s website, and one is the source code of the page you are reading. If any of them turned out to be false you would be able to tell in about a minute — which is the point of choosing them.",
+} as const;
+
+export const RECEIPTS: Receipt[] = [
+  {
+    label: "It refuses sales",
+    claim:
+      "The board will not let you buy Tower on its own, and once a flight plan is the cheaper answer it stops pricing the basket and sends you upstairs instead.",
+    check: "Tick Tower by itself on the board above and watch it decline the sale.",
+    href: "#seats",
+  },
+  {
+    label: "Six of ten are not for sale",
+    claim:
+      "Of the ten operators, only four can be bought here. The other six are on the page with the reason they are locked and a link to the tier at PHX/GROWTH that opens them.",
+    check: "Read the six locked cards and see where each one sends you.",
+    href: "#locked",
+  },
+  {
+    label: "The comparison is their own",
+    claim:
+      "Every tier, price and fee quoted here is taken from PHX/GROWTH's own pages rather than characterised by us, which is the one part of this page an outsider can check against a source we do not control.",
+    check: "Open their Agents page and hold it against the numbers above.",
+    href: "https://phxgrowth.com/agents",
+    external: true,
+  },
+  {
+    label: "The rules are public code",
+    claim:
+      "This site is open source. The pricing logic, the rule that loses the sale and the test that fails the build if a fabricated percentage appears in this copy are all readable without asking us for anything.",
+    check: "Read the test that enforces it, then read the rule it guards.",
+    href: "https://github.com/GreenAiSolution/Addtophxgrowth/blob/solo-single-seat-desk/src/lib/upgrades.test.ts",
+    external: true,
+  },
+];
+
+/**
  * The illustrative before/after work described on the Results page. Checked
  * like everything else — "built the offer + funnel", "rebuilt the site around
  * one clear CTA" and "wired tracking honest end to end" are all things an

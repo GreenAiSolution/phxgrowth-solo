@@ -7,6 +7,8 @@ import {
   FLIGHT_PLANS,
   LOCKED,
   PROOF_POSTURE,
+  RECEIPTS,
+  RECEIPTS_INTRO,
   THESIS,
   UPGRADES,
   entryPrice,
@@ -305,6 +307,54 @@ export default function Home() {
               </p>
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ── The receipts ───────────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.06] py-20 sm:py-24">
+        <div className="container">
+          <Reveal>
+            <p className="eyebrow text-cyan">{RECEIPTS_INTRO.eyebrow}</p>
+            <h2 className="mt-3 max-w-3xl font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+              {RECEIPTS_INTRO.headline}
+            </h2>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              {RECEIPTS_INTRO.body}
+            </p>
+          </Reveal>
+
+          <div className="mt-10 grid max-w-5xl gap-4 lg:grid-cols-2">
+            {RECEIPTS.map((r, i) => (
+              <Reveal key={r.label} delay={i * 45}>
+                <a
+                  href={r.href}
+                  {...(r.external
+                    ? { target: "_blank", rel: "noreferrer noopener" }
+                    : {})}
+                  className="phx-card group flex h-full flex-col p-6 transition-colors hover:border-cyan/30"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="font-heading text-lg font-semibold tracking-tight">
+                      {r.label}
+                    </h3>
+                    {r.external ? (
+                      <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-cyan/60 transition-colors group-hover:text-cyan" />
+                    ) : (
+                      <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-cyan/60 transition-colors group-hover:text-cyan" />
+                    )}
+                  </div>
+                  <p className="mt-3 text-[0.9rem] leading-relaxed text-muted-foreground">
+                    {r.claim}
+                  </p>
+                  <div className="rule-glow my-5" />
+                  <p className="hud-label mb-1.5 text-signal">Check it</p>
+                  <p className="text-[0.86rem] leading-relaxed text-muted-foreground">
+                    {r.check}
+                  </p>
+                </a>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 

@@ -33,6 +33,8 @@ import {
   flightPlanByKey,
   checkSeats,
   seatTotal,
+  RECEIPTS,
+  RECEIPTS_INTRO,
 } from "@/lib/upgrades";
 
 describe("the services these attach to", () => {
@@ -856,5 +858,107 @@ describe("the Check's refusals are actually refusals", () => {
     for (const b of advisory) {
       expect(checkSeats(b).blocked, JSON.stringify(b)).toBeFalsy();
     }
+  });
+});
+
+describe("the receipts are checkable by a stranger", () => {
+  const anchors = new Set(["#seats", "#check", "#locked", "#enquiry"]);
+
+  it("gives every receipt somewhere to go", () => {
+    // A receipt without a destination is an assertion wearing a receipt's
+    // clothes. The whole section is worth less than nothing if one of these
+    // is a dead end, because the visitor came here specifically to verify.
+    expect(RECEIPTS.length).toBeGreaterThanOrEqual(3);
+    for (const r of RECEIPTS) {
+      expect(r.label.length, r.label).toBeGreaterThan(3);
+      expect(r.claim.length, r.label).toBeGreaterThan(60);
+      expect(r.check.length, r.label).toBeGreaterThan(25);
+      if (r.external) {
+        expect(r.href, r.label).toMatch(/^https:\/\//);
+      } else {
+        expect(anchors.has(r.href), `"${r.href}" is not a section on this page`).toBe(true);
+      }
+    }
+  });
+
+  it("sends the visitor somewhere we do not control", () => {
+    // At least one has to leave the property. A page that verifies itself
+    // using only itself is a closed loop, and a closed loop is what every
+    // fabricated proof section already is.
+    expect(RECEIPTS.some((r) => r.external)).toBe(true);
+    expect(RECEIPTS.some((r) => r.href.includes("phxgrowth.com"))).toBe(true);
+  });
+
+  it("writes every check as an instruction the reader carries out", () => {
+    // "Our pricing is transparent" is a claim. "Open their Agents page and
+    // hold it against the numbers above" is a task. Only the second one can
+    // be failed, which is the only reason either is worth printing.
+    for (const r of RECEIPTS) {
+      const first = r.check.split(" ")[0].toLowerCase();
+      expect(
+        ["tick", "read", "open", "click", "run", "check", "compare", "watch", "count"],
+        `"${r.check}" does not start with something the reader does`,
+      ).toContain(first);
+      expect(r.check.toLowerCase(), r.label).not.toMatch(/^(we|our|the team)\b/);
+    }
+  });
+
+  it("claims nothing about who or how big we are", () => {
+    // The failure mode this section exists to prevent. A visitor cannot check
+    // our headcount, our office, our client list or how long we have been
+    // going, so none of it belongs on a page whose premise is that everything
+    // on it can be checked. This is also the rule that keeps a photograph of
+    // a team and a building off the page — an image asserts all four at once
+    // and supports none of them.
+    const copy = [
+      RECEIPTS_INTRO.headline,
+      RECEIPTS_INTRO.body,
+      ...RECEIPTS.flatMap((r) => [r.label, r.claim, r.check]),
+    ]
+      .join(" ")
+      .toLowerCase();
+    for (const word of [
+      "our team",
+      "our office",
+      "our staff",
+      "headquarters",
+      "trusted by",
+      "clients served",
+      "years of experience",
+      "award",
+      "industry-leading",
+    ]) {
+      expect(copy, `"${word}" is not something a visitor can verify`).not.toContain(word);
+    }
+  });
+
+  it("quotes no statistics of its own", () => {
+    // Same rule as the rest of the page, applied to the section that would be
+    // the most tempting place to break it.
+    const copy = RECEIPTS.flatMap((r) => [r.claim, r.check]).join(" ");
+    expect(copy).not.toMatch(/\d+(\.\d+)?\s?%/);
+    expect(copy).not.toMatch(/\d+(\.\d+)?\s?[x×]\s/i);
+    // Counts of things that change go stale silently. "Six of ten" is fixed
+    // by the catalogue and checked below; a test-suite size is not.
+    expect(copy).not.toMatch(/\b\d{2,}\s+(tests|commits|customers|businesses)\b/i);
+  });
+
+  it("keeps the six-of-ten claim tied to the catalogue", () => {
+    // The one hardcoded ratio in the section. If somebody unlocks an operator
+    // the sentence becomes false, so it fails here rather than on the page.
+    const locked = RECEIPTS.find((r) => r.href === "#locked");
+    expect(locked, "the locked-operator receipt has gone missing").toBeDefined();
+    expect(UPGRADES.length + LOCKED.length).toBe(10);
+
+    // Spelled out and read off the catalogue, so unlocking an operator breaks
+    // the test rather than quietly making the sentence false. The phrasing is
+    // free to change; the two numbers in it are not.
+    const word = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+    const claim = locked!.claim.toLowerCase();
+    expect(claim, `should say ${word[LOCKED.length]} are locked`).toContain(word[LOCKED.length]);
+    expect(claim, `should say ${word[UPGRADES.length]} are for sale`).toContain(
+      word[UPGRADES.length],
+    );
+    expect(claim).toContain("ten");
   });
 });
