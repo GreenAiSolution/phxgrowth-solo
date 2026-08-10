@@ -469,11 +469,11 @@ export const RECEIPTS: Receipt[] = [
     href: "#seats",
   },
   {
-    label: "Six of ten are not for sale",
+    label: "Five say they need your ad budget",
     claim:
-      "Of the ten operators, only four can be bought here. The other six are on the page with the reason they are locked and a link to the tier at PHX/GROWTH that opens them.",
-    check: "Read the six locked cards and see where each one sends you.",
-    href: "#locked",
+      "Five of the ten operators only work if you are already running ads. Rather than quietly selling them anyway, each of those five carries that warning on its own card, and the board raises the PHX/GROWTH flight plan the moment one of them is in your basket.",
+    check: "Tick Vector on the board above and read what the total says back to you.",
+    href: "#seats",
   },
   {
     label: "The comparison is their own",
@@ -784,6 +784,18 @@ export interface Upgrade {
    * it is satisfied.
    */
   requiresCrew?: number;
+  /**
+   * True when the operator reads from a live ad account.
+   *
+   * These five used to be unbuyable. That was the wrong answer to a real
+   * problem: an operator that reads from a live ad account genuinely has
+   * nothing to do without one, but refusing the sale outright also refused
+   * every owner who *is* running ads and simply cannot reach $5,000/mo for a
+   * managed tier. The honest fix is to sell it and say so — the card carries
+   * the warning, and `checkSeats()` only ever mentions Pilot when one of these
+   * is actually in the basket.
+   */
+  needsSpend?: boolean;
 }
 
 /**
@@ -801,29 +813,49 @@ export interface Upgrade {
  *   means four operators whose work never touches an ad account are only
  *   reachable at $30,000 a month.
  *
+ * SYSTEMS VERSUS OPERATORS — the rule this file now turns on
+ *   Every price on phxgrowth.com buys a *system*. Pilot is not a media buyer;
+ *   it is a media buyer plus the account audit, the honest tracking rebuild,
+ *   the landing pages, the compliance pre-flight, the attribution work, the
+ *   war room and a named human who answers for all of it. That is what
+ *   $5,000/mo is for, and it is worth it to a business with a budget in
+ *   flight.
+ *
+ *   This desk sells the operator on its own. No audit, no war room, no human
+ *   on the hook — the operator, running, month to month. That is a different
+ *   unit of sale, which is the entire reason a seat can cost less than a tier
+ *   without undercutting one. A visitor is not being offered a cheaper version
+ *   of Pilot; they are being offered a different thing, and the page has to
+ *   keep saying so or the comparison becomes dishonest in our favour.
+ *
+ *   This replaced an earlier rule — "no spend, no seat" — which allowed only
+ *   four of the ten to be sold and locked the rest behind the parent's tiers.
+ *   That rule was solving for the wrong failure. It protected the parent from
+ *   a price collision that was never real (a system and an operator are not
+ *   the same product) at the cost of turning away every owner who wanted one
+ *   operator and could not reach $5,000/mo for ten. All ten are now for sale
+ *   one at a time.
+ *
  * THE RULES
- *   1. NO SPEND, NO SEAT. A seat may only exist for an operator that does
- *      useful work with zero ad budget behind it. Six fail this and are listed
- *      in LOCKED below, each with the reason and the tier that unlocks them.
- *   2. NEVER UNDERCUT THE DESK. Where the parent already sells the same job à
- *      la carte, the seat carries the parent's own published price rather than
- *      a cheaper one. Closer is the case in point: phxgrowth.com/pricing lists
- *      AI Phone Agents "from $995/mo", so the Closer seat is $995/mo. Winning
- *      a client by underpricing the desk you are attached to is a way to lose
- *      both.
+ *   1. NEVER UNDERCUT THE DESK ON ITS OWN UNIT. Where the parent publishes a
+ *      price for that operator's job sold alone, the seat carries that price
+ *      rather than a cheaper one. phxgrowth.com/pricing lists AI Phone Agents
+ *      "from $995/mo", so the Closer seat is $995/mo — not $950.
+ *   2. NO SEAT CROSSES $1,500. That is Wingman, the cheapest door into the
+ *      house: three automations built for you in week one plus an employee in
+ *      Slack. A single seat priced above it would be a worse buy than the
+ *      parent's own entry tier, and a desk that sells you the worse buy has
+ *      no reason to be trusted about the rest. The ceiling is the rule; the
+ *      ladder underneath it is judgement, and the page says that out loud
+ *      rather than dressing it up as a formula.
  *   3. SAY WHAT IT WON'T DO. Every seat carries a `wont` line. A single
  *      operator hired alone is a narrow thing, and the fastest way to make a
  *      narrow thing feel dishonest is to describe only its edges that flatter.
- *   4. TALK THEM OUT OF IT. Where a parent tier is better value, the page says
+ *   4. SAY WHEN IT NEEDS A BUDGET. Five operators read from a live ad account
+ *      and are useless without one. They are sold anyway — to the people who
+ *      are running ads — with `needsSpend` set and the warning on the card.
+ *   5. TALK THEM OUT OF IT. Where a parent tier is better value, the page says
  *      so and links there. `checkSeats()` below is that rule in code.
- *
- * THE 2027 FILTER, RESTATED
- *   Unpaid demand is the whole thesis of this property. Paid acquisition keeps
- *   getting more expensive and less measurable; the customers a business does
- *   not pay for — the search it ranks for, the reviews that carry it, the call
- *   it actually answers — are the ones whose economics improve as everyone
- *   else's degrade. Every seat here is on that side of the line, and that is
- *   not a coincidence: it is rule 1 doing its job.
  */
 export const UPGRADES: Upgrade[] = [
   {
@@ -904,6 +936,33 @@ export const UPGRADES: Upgrade[] = [
      */
     requiresCrew: 2,
   },
+  /* ---- The tenth. Neither paid nor unpaid — it is the wiring. ---------- */
+
+  {
+    key: "seat-relay",
+    name: "Relay",
+    attachesTo: "ai-employees",
+    promise: "Keeps every decision wired to something that actually happens.",
+    demandCase:
+      "An operator that decides something and cannot act on it is a notification. The wiring between a decision and a real event — a row written, a message sent, a job created — is unglamorous, breaks silently when a vendor changes an endpoint, and is the reason most automation quietly stops working a few months after somebody set it up.",
+    delivers: [
+      "The routes, connectors and webhooks between your tools built and owned",
+      "n8n and Zapier handoffs maintained rather than left to rot",
+      "Breakages caught and repaired when a vendor changes an endpoint",
+      "Anything that moves money or messages a customer put behind a hold you release",
+    ],
+    price: 85000,
+    billing: "monthly",
+    fixes: "The automation that silently stopped three months ago",
+    build: true,
+    oversight:
+      "Relay is plumbing, which means the risk is not what it decides but what runs through it. Any step that moves money is hard-held and waits for you. Any step that messages a customer is time-held on a thirty-minute window, visible in the queue with a countdown you can cancel inside. Everything else — a row written, a record synced — runs, because holding those would be theatre.",
+    shift: "Continuous · 24/7/365",
+    wont:
+      "Replace Wingman. If what you want is three automations designed and built for you in week one plus an employee in Slack, that is $1,500/mo over at phxgrowth.com and it is the better buy — the board will say so when you tick this alone.",
+    unpaid:
+      "Neither side. Relay is the wiring the other nine run on, paid or unpaid.",
+  },
   {
     key: "seat-echo",
     name: "Echo",
@@ -927,83 +986,164 @@ export const UPGRADES: Upgrade[] = [
     wont: "Write a review, buy a review, or bury one. It asks, it routes, it replies — that is the whole of it.",
     unpaid: "Pure unpaid demand, and it lowers the price of the paid kind too.",
   },
+
+  /* ---- The five that read from a live ad account. ------------------------
+     Sold, not locked. Each one is genuinely useless without a budget in
+     flight, so each one says that on its card and `checkSeats()` raises
+     Pilot the moment one of them is in the basket. What none of them do is
+     pretend to be a flight plan: you are hiring the operator, not the desk
+     around it. ---------------------------------------------------------- */
+
+  {
+    key: "seat-vector",
+    name: "Vector",
+    attachesTo: "premium-ai-ads",
+    promise: "Moves your budget to whatever is making money, every fifteen minutes.",
+    demandCase:
+      "Most owners running a few thousand a month are choosing between doing it themselves on a Sunday night and paying an agency retainer that costs more than the budget it manages. The retainer exists because a human has to look; this operator looks every fifteen minutes and does not bill by the hour. It is the only seat on the board whose work you can watch move in your own ad account the same week.",
+    delivers: [
+      "Meta, Google and TikTok flown as one portfolio rather than three tabs",
+      "Budget and bids rebalanced on a fifteen-minute loop, day and night",
+      "Spend shifted by marginal return, lifecycle-aware, not by last-click ROAS",
+      "Losing ad sets cut before they finish spending the day's budget",
+      "Every decision logged in plain English so you can read what it did and why",
+    ],
+    price: 145000,
+    billing: "monthly",
+    fixes: "A budget nobody is watching between Mondays",
+    build: true,
+    oversight:
+      "Vector is the only operator on this board that spends your money, so the line is drawn at the ceiling rather than at every decision. Moving budget between campaigns inside a total you already agreed to is the job and runs on a one-hour visible hold; stopping a campaign runs on fifteen minutes, because being slow to stop something is the expensive direction. Raising the daily ceiling is hard-held and waits for you, every time, with no timer available.",
+    shift: "15-minute loop · 24/7/365",
+    wont:
+      "Make your ads, rebuild your tracking, or fix the page the click lands on. It flies the budget it is given. Those three are the desk's job and Pilot is where they live.",
+    unpaid: "This is the paid side of the board — it spends money rather than earning it unpaid.",
+    needsSpend: true,
+    leading: true,
+  },
+  {
+    key: "seat-prism",
+    name: "Prism",
+    attachesTo: "premium-ai-ads",
+    promise: "Reads what is working in your ads and directs the next one before the old one dies.",
+    demandCase:
+      "Creative fatigue is the fastest-moving cost in a small ad account: the ad that carried you last month quietly stops, and by the time the graph makes it obvious you have paid for three weeks of decline. Knowing which hook is tiring is a full-time reading job, which is exactly the kind of job that stops being a salary once an operator can do it.",
+    delivers: [
+      "Your running creative broken into hooks, frames, pacing, claims and arcs",
+      "Fatigue called early — which ad is dying and roughly how long it has",
+      "The winning genes recombined into render-ready briefs for whoever films",
+      "A standing test plan so there is always a challenger in the queue",
+    ],
+    price: 125000,
+    billing: "monthly",
+    fixes: "The winning ad that quietly stopped winning",
+    shift: "Continuous · briefs weekly",
+    wont:
+      "Film, render or design anything. Prism directs — it hands you the brief and somebody else makes the ad. If you want it made, that is a different purchase.",
+    unpaid: "Paid side. It has nothing to read from unless ads are running.",
+    needsSpend: true,
+  },
+  {
+    key: "seat-ledger",
+    name: "Ledger",
+    attachesTo: "premium-ai-ads",
+    promise: "Checks what the platforms claim against what your bank actually received.",
+    demandCase:
+      "Every ad platform grades its own homework, and all of them count the same sale. An owner reading three dashboards that each claim the revenue has no way to know the real number without doing the reconciliation by hand — which is why almost nobody does it, and why spend keeps flowing to whichever platform reports most generously.",
+    delivers: [
+      "Platform-reported ROAS reconciled against real orders, returns and COGS",
+      "Contribution profit per channel, per campaign — the number that decides",
+      "Duplicate-claimed conversions found and stripped out of the comparison",
+      "A monthly read-out of what each channel actually earned after costs",
+    ],
+    price: 115000,
+    billing: "monthly",
+    fixes: "Three dashboards all claiming the same sale",
+    shift: "Continuous · reconciles monthly",
+    wont:
+      "Move your budget. Ledger produces the honest number and stops there — acting on it is Vector's job or yours.",
+    unpaid: "Paid side. With no spend, both halves of the comparison are zero.",
+    needsSpend: true,
+  },
+  {
+    key: "seat-atlas",
+    name: "Atlas",
+    attachesTo: "premium-ai-ads",
+    promise: "Builds the spend plan before the money moves, then re-earns it every quarter.",
+    demandCase:
+      "The most expensive decisions in an ad account are made before anything is switched on — which channel, which offer, which audience, in which order. Those decisions usually get made once, by whoever was in the room, and are never revisited. A quarterly zero-based reset is the part of an agency engagement that most owners never buy separately because nobody sells it separately.",
+    delivers: [
+      "Product, market, competitors, offers, personas and objections researched properly",
+      "Channel fit and budget split argued for, with the reasoning shown",
+      "The order experiments run in, so each one informs the next",
+      "A zero-based reset each quarter where the plan re-earns every dollar",
+    ],
+    price: 95000,
+    billing: "monthly",
+    fixes: "A budget split nobody has questioned since launch",
+    shift: "Standing plan · quarterly resets",
+    wont:
+      "Run anything. Atlas writes the plan and defends it; executing it is Vector's job, or your own.",
+    unpaid: "Paid side. The plan Atlas builds is a plan for money you are about to spend.",
+    needsSpend: true,
+  },
+  {
+    key: "seat-shield",
+    name: "Shield",
+    attachesTo: "premium-ai-ads",
+    promise: "Clears every ad before it spends, so the account does not get banned.",
+    demandCase:
+      "A disabled ad account is not a slow month, it is a stopped business, and appeals take weeks with no guarantee. The businesses most exposed are the ones in the categories platforms police hardest — health, finance, legal, anything making a claim — which are also the ones least likely to have somebody on staff who has read the policy.",
+    delivers: [
+      "Copy, creative, targeting and landing pages checked against platform policy first",
+      "Sensitive-category rules applied by vertical rather than generically",
+      "The specific clause quoted when something fails, plus the wording that passes",
+      "A written pre-flight record for every asset, in case you ever appeal",
+    ],
+    price: 75000,
+    billing: "monthly",
+    fixes: "The ad account that gets disabled on a Friday",
+    shift: "Pre-flight, on demand",
+    wont:
+      "Guarantee an approval or overturn a ban. It is a pre-flight check, not an insurance policy, and no honest version of this promises a platform's decision.",
+    unpaid: "Paid side. No ads, no pre-flight.",
+    needsSpend: true,
+  },
+
 ];
 
 /**
- * The six that are not for sale here, and why.
+ * WHAT USED TO LIVE HERE
  *
- * This list is doing more work than the four above it. An owner reading a
- * roster of ten with four prices on it will ask what happened to the other
- * six, and the answer has to be better than silence. Each of these fails rule
- * 1 — no useful work without a budget in flight — except Relay, which fails
- * rule 2 instead: the parent already sells that job for less than a seat here
- * could honestly cost.
+ * A `LOCKED` list of six operators that could not be bought on this desk,
+ * each with a reason and a link to the PHX/GROWTH tier that opened it. It was
+ * removed when the rule above changed.
  *
- * Every entry routes to the tier that actually unlocks it. That is the point:
- * six of the ten cards on this page are advertisements for phxgrowth.com.
+ * Worth recording why, because the list was good work and deleting good work
+ * needs an argument. It existed to stop this property undercutting the parent.
+ * But the collision it was protecting against was never real: phxgrowth.com
+ * sells a system and this desk sells an operator, and those are different
+ * units of sale. What the list actually did was turn away every owner who
+ * wanted one operator and could not reach $5,000/mo — which is precisely the
+ * person this desk was built for.
+ *
+ * The honest half of it survives as `needsSpend` on the five operators that
+ * read from a live ad account. They are sold now; they just say what they
+ * need before you buy them, and `checkSeats()` raises Pilot whenever one of
+ * them is in the basket. Nothing is hidden and nothing is refused except the
+ * one configuration that genuinely does not work — Tower with nothing to
+ * command, which `requiresCrew` still blocks.
  */
-export interface LockedSeat {
-  name: string;
-  /** Their role line, as the Agents page states it. */
-  role: string;
-  /** Their one-liner, near enough verbatim. */
-  does: string;
-  /** Why it cannot be a single seat. */
-  reason: string;
-  /** The FLIGHT_PLANS key that unlocks it. */
-  unlockedBy: string;
+
+/** The five operators that read from a live ad account. */
+export function seatsNeedingSpend(): Upgrade[] {
+  return UPGRADES.filter((u) => u.needsSpend);
 }
 
-export const LOCKED: LockedSeat[] = [
-  {
-    name: "Vector",
-    role: "Autonomous Media Buyer",
-    does: "Moves your budget to whatever is making money — every fifteen minutes.",
-    reason:
-      "The entire job is moving a budget. With no budget there is nothing to move, and a media buyer with nothing to buy is a subscription to a graph.",
-    unlockedBy: "pilot",
-  },
-  {
-    name: "Prism",
-    role: "Creative Genome Director",
-    does: "Ships the next winning ad before the old one wears out.",
-    reason:
-      "Prism works from what the current ads are doing — which hooks are fatiguing, which frames still hold. Nothing running means nothing to learn from, and it would be inventing rather than directing.",
-    unlockedBy: "squadron",
-  },
-  {
-    name: "Ledger",
-    role: "Profit & Attribution Analyst",
-    does: "Checks platform claims against your books, every run.",
-    reason:
-      "There are no platform claims to check. Ledger exists to catch the gap between what Meta says it did and what your bank says happened; with no spend, both sides of that comparison are zero.",
-    unlockedBy: "squadron",
-  },
-  {
-    name: "Atlas",
-    role: "Growth Strategist",
-    does: "Builds the plan before a dollar leaves the runway.",
-    reason:
-      "The plan Atlas builds is a spend plan — channel fit, budget split, the order experiments run in. It is genuinely useful and it is genuinely about money you are about to spend on ads.",
-    unlockedBy: "fleet",
-  },
-  {
-    name: "Shield",
-    role: "Compliance Guard",
-    does: "Clears every ad before it spends — no banned accounts.",
-    reason:
-      "Shield is a pre-flight check on ads. No ads, no pre-flight. Selling it as a standalone would be selling a fire door for a building with no fire.",
-    unlockedBy: "fleet",
-  },
-  {
-    name: "Relay",
-    role: "Automation Engineer",
-    does: "Keeps every decision wired to a real action.",
-    reason:
-      "This one is not locked, it is just cheaper over there. Wingman is $1,500/mo and includes three working automations built for you in week one plus an employee in Slack. A single Relay seat could not honestly beat that, so we don't offer one.",
-    unlockedBy: "wingman",
-  },
-];
+/** The five that work with no ad budget behind them at all. */
+export function seatsWithoutSpend(): Upgrade[] {
+  return UPGRADES.filter((u) => !u.needsSpend);
+}
 
 export function serviceByKey(key: ServiceKey): ParentService | undefined {
   return PARENT_SERVICES.find((s) => s.key === key);
@@ -1098,11 +1238,15 @@ export const BUNDLES: Bundle[] = [
   },
   {
     key: "full-board",
-    name: "The Full Board",
+    // Renamed from "The Full Board" when the other six went on sale. Four of
+    // ten stopped being the full anything, and a crew whose name overstates
+    // what is in it is the exact kind of small lie this page cannot afford.
+    // The Stripe price is unchanged — the key is what billing reads.
+    name: "The Unpaid Board",
     members: ["seat-closer", "seat-herald", "seat-tower", "seat-echo"],
-    promise: "Every seat on this page, with Tower watching all of them.",
+    promise: "Every operator that earns without an ad budget, with Tower watching all of them.",
     rationale:
-      "This is the whole unpaid side of the operation: found without paying for the click, answered on the first ring, asked for the review at the right hour, and watched around the clock by the one operator whose job is noticing when another has stopped. It is also the only configuration in which Tower makes sense at full stretch — three operators to command rather than the two it needs as a minimum. Fleet Command is the only other place all four are available, and it is $30,000/mo with a media budget attached.",
+      "This is the whole unpaid side of the operation: found without paying for the click, answered on the first ring, asked for the review at the right hour, and watched around the clock by the one operator whose job is noticing when another has stopped. It is also the only configuration in which Tower makes sense at full stretch — three operators to command rather than the two it needs as a minimum. Nothing in it reads from an ad account, so it is the one crew here that works identically whether you spend a dollar on advertising this year or not.",
     price: 325000,
     apex: true,
   },
@@ -1208,6 +1352,7 @@ export function checkSeats(keys: string[]): SeatCheck {
   const crew = exactCrew(seats.map((s) => s.key));
   const wingman = flightPlanByKey("wingman")!;
   const pilot = flightPlanByKey("pilot")!;
+  const fleet = flightPlanByKey("fleet")!;
 
   if (seats.length === 0) {
     return {
@@ -1234,33 +1379,74 @@ export function checkSeats(keys: string[]): SeatCheck {
     };
   }
 
-  // The Pilot line. Four seats land at $3,585 and Pilot is $5,000 — close
-  // enough that anybody spending on ads at all is better off over there,
-  // because Pilot carries a media buyer this desk cannot sell at any price.
-  if (total >= pilot.monthly) {
+  // Big baskets get the Fleet Command comparison rather than the Pilot one,
+  // because Fleet is the only tier that carries all ten. It is not a warning:
+  // at eight or more seats this desk is genuinely the cheaper way to get the
+  // operators, and the visitor should be told what the extra $20,000 buys so
+  // the choice is theirs rather than ours.
+  if (seats.length >= 8) {
+    return {
+      total,
+      tone: "ok",
+      verdict: `${seats.length} of ten, ${formatCurrency(total)}/mo.`,
+      detail: `${fleet.code} is the only flight plan that carries all ten, at ${fleet.price} ${fleet.fee.toLowerCase()}. The difference is the desk: the account audit, honest tracking, the landing pages, the war room and a named human who answers for the result. If you are running real budget, that is what the gap buys. If you are not, this is the same operators for a third of it.`,
+      goTo: fleet,
+      crew,
+    };
+  }
+
+  // The Pilot line, and the one place this check had to be rewritten when all
+  // ten went on sale.
+  //
+  // The old version routed any basket over $5,000 to Pilot. That was right
+  // when the only seats for sale were the ones no flight plan competes for,
+  // and it is wrong now: a basket of eight operators that never touch an ad
+  // account is not a worse Pilot, it is a different purchase, and telling that
+  // buyer to spend $5,000 on a managed media tier they have no budget for
+  // would be the most expensive bad advice on the page.
+  //
+  // So the comparison is gated on the thing that actually makes Pilot the
+  // better buy — a seat in the basket that reads from a live ad account. If
+  // one of those is in there, the desk's version of it comes with the audit,
+  // the tracking rebuild, the compliance pre-flight and a human on the hook,
+  // and past a certain number you are paying seat rates for less.
+  const spendSeats = seats.filter((s) => s.needsSpend);
+
+  if (spendSeats.length > 0 && total >= pilot.monthly) {
     return {
       total,
       tone: "elsewhere",
       verdict: "Buy the flight plan instead.",
-      detail: `This basket is ${formatCurrency(total)}/mo. Pilot is ${pilot.price} and adds an autonomous media buyer on one channel — the single thing no seat on this page is allowed to sell you. At this number you are paying single-seat rates for something the desk packages for less.`,
+      detail: `This basket is ${formatCurrency(total)}/mo and ${spendSeats.length === 1 ? `${spendSeats[0].name} needs` : `${spendSeats.length} of these seats need`} a live ad account to be worth anything. Pilot is ${pilot.price} ${pilot.fee.toLowerCase()} and wraps the same work in the account audit, the tracking rebuild, the landing pages and a named human who answers for it. At this number you are paying operator rates and getting none of the desk.`,
       goTo: pilot,
     };
   }
 
-  if (total >= pilot.monthly * 0.7) {
+  if (spendSeats.length > 0 && total >= pilot.monthly * 0.7) {
     return {
       total,
       tone: "warn",
       verdict: `Within ${formatCurrency(pilot.monthly - total)} of Pilot.`,
-      detail: `${formatCurrency(total)}/mo here, ${pilot.price} for Pilot. If a dollar of ad spend is in your plans this year, close the gap and go there — you get these operators' work plus a media buyer, and the fee only starts once spend is actually being managed. If you are not running ads, this basket is the right answer and Pilot would be waste.`,
+      detail: `${formatCurrency(total)}/mo here, ${pilot.price} for Pilot. You are already buying seats that only work with spend behind them, so the gap is small and Pilot closes it with everything this desk deliberately does not sell — the audit, honest tracking, the page the click lands on, and somebody accountable. Close the gap if you can. If you cannot, this basket is the right answer and it is why it exists.`,
       goTo: pilot,
       crew,
     };
   }
 
   // The Wingman collision. Wingman is $1,500/mo for three built automations
-  // plus an employee in Slack, and it is genuinely better value than a single
-  // mid-priced seat for anybody whose actual problem is plumbing.
+  // plus an employee in Slack. Relay alone is the case it beats outright, and
+  // saying so costs this desk $850/mo every time it fires.
+  if (seats.length === 1 && seats[0].key === "seat-relay") {
+    return {
+      total,
+      tone: "warn",
+      verdict: "Wingman is the better buy here.",
+      detail: `Relay alone is ${formatCurrency(total)}/mo and maintains wiring you already have. Wingman is ${wingman.price} and includes three automations designed and built for you in week one plus an employee in Slack. Unless your automations exist already and the problem is that they keep breaking, that is the better ${formatCurrency(wingman.monthly - total)} you will spend.`,
+      goTo: wingman,
+      crew,
+    };
+  }
+
   if (seats.length === 1 && total >= wingman.monthly) {
     const only = seats[0];
     return {
@@ -1283,11 +1469,16 @@ export function checkSeats(keys: string[]): SeatCheck {
     };
   }
 
+  const needing = seats.filter((s) => s.needsSpend);
+
   return {
     total,
     tone: "ok",
     verdict: `${formatCurrency(total)}/mo, month to month.`,
-    detail: `${seats.length} seat${seats.length === 1 ? "" : "s"}, no setup fee, and nothing over at phxgrowth.com covers this for less. Every operator here is on the unpaid side of the board — none of it needs an ad budget behind it to work.`,
+    detail:
+      needing.length > 0
+        ? `${seats.length} seat${seats.length === 1 ? "" : "s"}, no setup fee, no performance fee. ${needing.length === 1 ? `${needing[0].name} reads from a live ad account, so buy it only if you are actually running ads` : `${needing.length} of these read from a live ad account, so they are worth buying only if you are actually running ads`} — with nothing in flight ${needing.length === 1 ? "it has" : "they have"} nothing to work on.`
+        : `${seats.length} seat${seats.length === 1 ? "" : "s"}, no setup fee, and nothing over at phxgrowth.com covers this for less. Not one of these needs an ad budget behind it to work.`,
   };
 }
 
@@ -1298,10 +1489,10 @@ export function checkSeats(keys: string[]): SeatCheck {
 export const THESIS = {
   eyebrow: "The fourth way to hire the crew",
   headline: "Hire one operator. Not the whole crew.",
-  // Both counts are interpolated rather than typed. The split between what can
-  // be sold as a seat and what cannot has already moved twice as the parent's
-  // pricing page was read properly, and a hardcoded "four" was wrong both times.
-  body: `PHX/GROWTH hires its ten operators three ways — ${FLIGHT_PLANS[1].price}, ${FLIGHT_PLANS[2].price} or ${FLIGHT_PLANS[3].price} a month. ${UPGRADES.length} of the ten do work that never touches an ad account. Those ${UPGRADES.length} you can hire one at a time.`,
+  // Counts are interpolated rather than typed. How many of the ten this desk
+  // sells has already moved twice, and a hardcoded number was wrong both
+  // times — once at "four", once before that.
+  body: `PHX/GROWTH hires its ten operators three ways — ${FLIGHT_PLANS[1].price}, ${FLIGHT_PLANS[2].price} or ${FLIGHT_PLANS[3].price} a month. Every one of those prices buys a whole system. This desk sells the operator on its own, from ${formatCurrency(entryPrice())}/mo. All ${UPGRADES.length}, one at a time, in any combination you like.`,
 } as const;
 
 /**
@@ -1326,11 +1517,15 @@ export const FLIGHT_CHECK = {
 export const FAIR_QUESTIONS: { q: string; a: string }[] = [
   {
     q: "Do I have to be a PHX/GROWTH client already?",
-    a: "No, and that is the whole point of this desk. The flight plans over at phxgrowth.com assume you are running ads with them. A seat assumes nothing — every operator here does useful work with zero ad budget behind it. If you already fly with PHX/GROWTH, a seat appears on your existing invoice instead of opening a second account.",
+    a: "No, and that is the whole point of this desk. The flight plans over at phxgrowth.com are whole systems and they are priced like it. A seat assumes nothing: you hire the operator, month to month, and nothing else is required of you. If you already fly with PHX/GROWTH, a seat appears on your existing invoice instead of opening a second account.",
   },
   {
-    q: "Why can't I hire the other six?",
-    a: "Because five of them would not work and we would be taking your money for a dashboard. Vector, Prism, Ledger, Atlas and Shield all read from a live ad account — with no spend in flight they have nothing to optimise, learn from, reconcile, plan or clear. Relay is the exception: it works fine standalone, but Wingman does that job for $1,500/mo including two more automations than a seat would come with, so buying it here would be a worse deal. Every one of the six links to the tier that actually unlocks it.",
+    q: "Why is a seat so much less than a flight plan?",
+    a: "Because it is not the same thing, and we would rather say so than let you find out. Pilot is $5,000/mo because it is not a media buyer — it is a media buyer plus the account audit, the tracking rebuilt honestly, the landing pages, the compliance pre-flight, the attribution work, the war room and a named human who answers for the result. A seat is the operator, running, and none of that around it. If you want the system, buy the system; the price difference is the system.",
+  },
+  {
+    q: "Which ones actually need me to be running ads?",
+    a: "Five of them: Vector, Prism, Ledger, Atlas and Shield. All five read from a live ad account — with nothing in flight they have nothing to optimise, learn from, reconcile, plan or clear. You can still buy them, because plenty of owners are running ads and simply cannot reach $5,000/mo for a managed tier. But each one says it on its card, and the moment one is in your basket the running total starts comparing you against Pilot instead of congratulating you. The other five — Closer, Herald, Tower, Echo and Relay — work with no ad budget at all.",
   },
   {
     q: "How does this bill?",
@@ -1338,11 +1533,11 @@ export const FAIR_QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: "Does a seat come with a performance fee?",
-    a: "No. The parent's performance fee is a percentage of ad spend it actively manages — 5% on Pilot, 3.5% on Squadron, 2% on Fleet Command. No seat on this page manages ad spend, so no seat carries a fee. What you see is the whole number.",
+    a: "No, not even Vector. The parent's performance fee is a percentage of the ad spend its desk actively manages — 5% on Pilot, 3.5% on Squadron, 2% on Fleet Command. A seat is a flat monthly number with nothing on top, whatever your budget does. That cuts both ways and you should know which: you keep the whole upside if your spend grows, and you get none of the desk that would have helped it grow.",
   },
   {
     q: "Is a seat cheaper than the flight plan?",
-    a: "Sometimes, and the page will tell you when it is not. One or two seats are far cheaper than any tier that carries those operators. Once a basket climbs past about $3,500/mo the arithmetic turns over, because Pilot is $5,000 and includes a media buyer no seat is allowed to sell. The Check runs that comparison live while you choose and links out when the honest answer is over there.",
+    a: "Per operator, always. As a whole purchase, only up to a point, and the page will tell you where that point is for your basket rather than making you find it. All ten seats together are less than a third of Fleet Command, which is the only tier that carries all ten — but Fleet includes the desk and managed spend and a seat includes neither. The Check runs the comparison live while you choose, and it links out to phxgrowth.com whenever the honest answer is over there.",
   },
   {
     q: "Do you have case studies for these seats?",

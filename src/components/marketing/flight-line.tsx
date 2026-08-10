@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Lock, Minus, Plus, TriangleAlert } from "lucide-react";
 import {
   BUNDLES,
-  LOCKED,
+  seatsNeedingSpend,
   UPGRADES,
   checkSeats,
   flightPlanByKey,
@@ -154,49 +154,6 @@ function SeatCard({
           </>
         )}
       </button>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  An operator you can't hire alone, and why                         */
-/* ------------------------------------------------------------------ */
-
-function LockedCard({ locked }: { locked: (typeof LOCKED)[number] }) {
-  const tier = unlockTier(locked.unlockedBy);
-  return (
-    <div className="phx-card flex h-full flex-col border-white/[0.05] bg-white/[0.012] p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="font-heading text-xl font-semibold tracking-tight text-muted-foreground">
-            {locked.name}
-          </h3>
-          <p className="hud-label mt-1.5">{locked.role}</p>
-        </div>
-        <Lock className="h-4 w-4 shrink-0 text-muted-foreground/50" />
-      </div>
-
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground/85">{locked.does}</p>
-
-      <div className="mt-4 flex-1 rounded-lg border border-white/[0.06] bg-black/25 p-4">
-        <p className="hud-label mb-2 text-gold/70">Not sold as a seat</p>
-        <p className="text-[0.84rem] leading-relaxed text-muted-foreground">{locked.reason}</p>
-      </div>
-
-      {tier ? (
-        <a
-          href={`${BRAND.parent.url}/pricing`}
-          onClick={() => pulse("routed_out", `locked:${locked.name}`)}
-          className="mt-4 inline-flex items-center justify-between gap-2 rounded-full border border-white/12 px-5 py-2.5 text-sm transition-colors hover:border-cyan/40 hover:bg-white/[0.04]"
-        >
-          <span className="text-muted-foreground">
-            Unlocked by <span className="font-semibold text-foreground">{tier.name}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-cyan">
-            {tier.price} <ArrowUpRight className="h-3.5 w-3.5" />
-          </span>
-        </a>
-      ) : null}
     </div>
   );
 }
@@ -504,29 +461,74 @@ export function FlightLine({ canCheckout }: { canCheckout: boolean }) {
         </div>
       </section>
 
-      {/* ── The six that are not for sale here ─────────────────────── */}
-      <section id="locked" className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
+      {/* ── Why a seat costs less than a flight plan ───────────────── */}
+      <section id="systems" className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
         <div className="container">
           <Reveal>
-            <p className="eyebrow text-gold">The other six</p>
+            <p className="eyebrow text-gold">The part worth reading twice</p>
             <h2 className="mt-3 max-w-3xl font-heading text-3xl font-semibold tracking-tight sm:text-5xl">
-              And six we won&rsquo;t sell you one at a time.
+              Why a seat costs less than a flight plan.
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Five of them read from a live ad account and would do nothing without one. The sixth
-              is simply cheaper at {BRAND.parent.name}. Each card names the reason and the tier
-              that opens it — which makes most of this section an advert for the desk upstairs, and
-              that is fine. A roster of ten with four prices and no explanation would be the
-              suspicious version.
+              Because it is not a cheaper version of one. Every price at {BRAND.parent.name} buys a
+              whole system. Every price here buys a single operator, running, with none of the
+              system around it. Two different things, two different numbers — and if you need the
+              system, the honest answer is to go and buy the system.
             </p>
           </Reveal>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {LOCKED.map((l, i) => (
-              <Reveal key={l.name} delay={i * 55}>
-                <LockedCard locked={l} />
-              </Reveal>
-            ))}
+          <div className="mt-12 grid gap-5 lg:grid-cols-2">
+            <Reveal>
+              <div className="phx-card flex h-full flex-col border-white/[0.05] bg-white/[0.012] p-7">
+                <p className="hud-label text-gold/80">What a flight plan is</p>
+                <h3 className="mt-3 font-heading text-2xl font-semibold tracking-tight">
+                  The operators, plus the desk
+                </h3>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                  Pilot is not a media buyer. It is a media buyer plus the account audit, tracking
+                  rebuilt honestly, the landing pages, the compliance pre-flight, the attribution
+                  work, the war room, and a named human who answers for the result. That is what
+                  the number is for, and it is worth it to a business with a budget in flight.
+                </p>
+                <a
+                  href={`${BRAND.parent.url}/pricing`}
+                  onClick={() => pulse("routed_out", "systems:parent")}
+                  className="mt-6 inline-flex items-center justify-between gap-2 rounded-full border border-white/12 px-5 py-2.5 text-sm transition-colors hover:border-cyan/40 hover:bg-white/[0.04]"
+                >
+                  <span className="text-muted-foreground">See the flight plans</span>
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap font-semibold text-cyan">
+                    {BRAND.parent.name} <ArrowUpRight className="h-3.5 w-3.5" />
+                  </span>
+                </a>
+              </div>
+            </Reveal>
+
+            <Reveal delay={70}>
+              <div className="phx-card flex h-full flex-col border-white/[0.05] bg-white/[0.012] p-7">
+                <p className="hud-label text-cyan/80">What a seat is</p>
+                <h3 className="mt-3 font-heading text-2xl font-semibold tracking-tight">
+                  One operator, and nothing around it
+                </h3>
+                <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                  The same operator, run by the same team on the same infrastructure, hired on its
+                  own. No audit, no war room, nobody on the hook but the operator itself. You take
+                  the pieces you need and skip the rest, which is the entire reason this desk
+                  exists — and the entire reason it is cheaper.
+                </p>
+                <div className="mt-6 rounded-lg border border-white/[0.06] bg-black/25 p-4">
+                  <p className="hud-label mb-2 text-gold/70">Said before you buy</p>
+                  <p className="text-[0.84rem] leading-relaxed text-muted-foreground">
+                    {seatsNeedingSpend().length} of the ten read from a live ad account —{" "}
+                    {seatsNeedingSpend()
+                      .map((s) => s.name)
+                      .join(", ")}
+                    . They are for sale, but with nothing in flight they have nothing to work on,
+                    so each card says so and the running total starts comparing you against Pilot
+                    the moment one is ticked.
+                  </p>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>

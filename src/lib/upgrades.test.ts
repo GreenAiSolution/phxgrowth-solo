@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { ACTION_KINDS } from "@/lib/gate";
 import {
   PARENT_SERVICES,
   FLIGHT_PLANS,
@@ -29,7 +30,7 @@ import {
   THESIS,
   FLIGHT_CHECK,
   FAIR_QUESTIONS,
-  LOCKED,
+  seatsNeedingSpend,
   flightPlanByKey,
   checkSeats,
   seatTotal,
@@ -110,34 +111,63 @@ describe("rule one: every upgrade is attached", () => {
     }
   });
 
-  it("sells nothing at all against the ad desk", () => {
-    // The load-bearing rule of the property, and the reason the seat count is
-    // four rather than ten. A seat has to do useful work with zero ad budget
-    // behind it; anything bolted onto Premium AI Ads by definition does not,
-    // and would be Vector's, Prism's, Ledger's, Atlas's or Shield's job sold
-    // without the thing that makes it work.
-    expect(upgradesFor("premium-ai-ads")).toEqual([]);
+  it("flags every seat sold against the ad desk as needing spend", () => {
+    // This test used to assert the opposite — that nothing could be sold
+    // against Premium AI Ads at all — which is what kept the seat count at
+    // four. The rule it enforced was solving the wrong problem: a system and
+    // an operator are different units of sale, so they never collided. What
+    // survives is the honest half. Anything attached to the ad desk genuinely
+    // does need a live account, and must say so.
+    const adSeats = upgradesFor("premium-ai-ads");
+    expect(adSeats.length, "nothing attaches to the ad desk any more").toBeGreaterThan(0);
+    for (const u of adSeats) {
+      expect(u.needsSpend, `${u.name} sits on the ad desk but is not flagged`).toBe(true);
+    }
     expect(PARENT_SERVICES.flatMap((s) => upgradesFor(s.key)).length).toBe(UPGRADES.length);
   });
 
-  it("accounts for all ten operators exactly once", () => {
-    // Four sold, six explained. A roster that quietly loses one is the
-    // version a visitor is right to be suspicious of.
+  it("sells every operator on the roster, exactly once", () => {
+    // All ten, one at a time. A roster that quietly loses one is the version a
+    // visitor is right to be suspicious of.
     const sold = UPGRADES.map((u) => u.name);
-    const explained = LOCKED.map((l) => l.name);
-    const all = [...sold, ...explained];
-    expect(all.length).toBe(OPERATORS.length);
-    expect(new Set(all).size).toBe(OPERATORS.length);
+    expect(sold.length).toBe(OPERATORS.length);
+    expect(new Set(sold).size).toBe(OPERATORS.length);
     for (const o of OPERATORS) {
-      expect(all, `${o.name} is on the roster but appears on neither list`).toContain(o.name);
+      expect(sold, `${o.name} is on the roster but has no seat`).toContain(o.name);
     }
   });
 
-  it("routes every locked operator at a tier that actually exists", () => {
-    for (const l of LOCKED) {
-      expect(flightPlanByKey(l.unlockedBy), `${l.name} → ${l.unlockedBy}`).toBeDefined();
-      expect(l.reason.length, `${l.name} is locked without saying why`).toBeGreaterThan(80);
+  it("keeps every seat under Wingman, the parent's cheapest door", () => {
+    // Rule 2, in code. A single seat priced above the parent's entry tier is a
+    // worse buy than the parent's own entry tier, and a desk that sells you the
+    // worse buy has no claim on being believed about anything else.
+    const wingman = flightPlanByKey("wingman")!;
+    for (const u of UPGRADES) {
+      expect(
+        u.price,
+        `${u.name} at ${u.price} is not under Wingman's ${wingman.monthly}`,
+      ).toBeLessThan(wingman.monthly);
     }
+  });
+
+  it("makes every spend-dependent seat admit it needs a budget", () => {
+    // Rule 4. These five are sold rather than hidden, which only stays honest
+    // for as long as each one says what it needs before the money moves.
+    const needing = UPGRADES.filter((u) => u.needsSpend);
+    expect(needing.length, "nothing is flagged as needing spend any more").toBeGreaterThan(0);
+    for (const u of needing) {
+      const said = `${u.wont ?? ""} ${u.unpaid ?? ""} ${u.demandCase}`.toLowerCase();
+      expect(
+        /ad account|ad budget|spend|paid side|running ads|in flight/.test(said),
+        `${u.name} needs a live ad account and never says so`,
+      ).toBe(true);
+    }
+  });
+
+  it("keeps Closer pinned to the price the parent publishes", () => {
+    // Rule 1, and the only price on the board that is not ours to choose.
+    // phxgrowth.com/pricing lists AI Phone Agents "from $995/mo".
+    expect(upgradeByKey("seat-closer")!.price).toBe(99500);
   });
 });
 
@@ -217,11 +247,19 @@ describe("rule three: a seat is an operator, named and unchanged", () => {
     }
   });
 
-  it("never sells a seat for an operator the page says is locked", () => {
-    const locked = new Set(LOCKED.map((l) => l.name));
-    for (const u of UPGRADES) {
-      expect(locked.has(u.name), `${u.name} is sold and locked at the same time`).toBe(false);
-    }
+  it("only raises Pilot when a seat in the basket actually needs ad spend", () => {
+    // The most expensive bad advice this page could give. A basket of operators
+    // that never touch an ad account is not a worse Pilot, and telling that
+    // buyer to spend $5,000/mo on a managed media tier they have no budget for
+    // would cost them more than anything else on the site.
+    const unpaidKeys = UPGRADES.filter((u) => !u.needsSpend).map((u) => u.key);
+    const verdict = checkSeats(unpaidKeys);
+    expect(verdict.goTo?.key, "sent an ads-free basket to a media tier").not.toBe("pilot");
+
+    // And the converse: once a spend-dependent seat is in there at a real
+    // number, the page has to say so rather than quietly take the money.
+    const withSpend = checkSeats(seatsNeedingSpend().map((u) => u.key));
+    expect(withSpend.goTo?.key).toBe("pilot");
   });
 
   it("makes every seat state its shift, its refusal and its relation to paid demand", () => {
@@ -321,6 +359,12 @@ describe("rule four: nothing the Manifest already promises", () => {
     // cut an offer lab (07), a tracking rebuild (02) and a conversion lab
     // (06). The pattern is consistent: everything looks additive until the
     // parent's own words are sitting in the same file.
+    //
+    // The five spend-dependent seats are exempt, and the exemption is the
+    // whole point of them rather than a hole in the rule. The Manifest is what
+    // the *system* covers, twelve items deep. Vector genuinely is Manifest 03
+    // sold on its own, without the other eleven — that is the product. What
+    // the seats must not do is claim the system, which the next test checks.
     const STOP = new Set([
       "against", "across", "before", "between", "their", "there", "these", "those",
       "which", "while", "where", "every", "other", "about", "after", "still",
@@ -372,7 +416,7 @@ describe("rule four: nothing the Manifest already promises", () => {
       ...HOME_CLAIMS.map((c) => ({ label: "Homepage claim", text: c })),
     ];
 
-    for (const u of UPGRADES) {
+    for (const u of UPGRADES.filter((x) => !x.needsSpend)) {
       const claim = words([u.name, u.promise, ...u.delivers].join(" "));
       for (const item of scope) {
         const covered = words(item.text);
@@ -382,6 +426,34 @@ describe("rule four: nothing the Manifest already promises", () => {
           `${u.key} overlaps ${item.label} on: ${shared.join(", ")}`,
         ).toBeLessThanOrEqual(2);
       }
+    }
+  });
+
+  it("stops a spend-dependent seat claiming the whole system", () => {
+    // The replacement bar for the five seats exempted above. Each of them is
+    // deliberately a slice of the Manifest sold on its own, so overlapping one
+    // item is the product working. Overlapping half the list would be a seat
+    // impersonating Ad Management at a fifth of the price, which is the exact
+    // thing that would make this desk dishonest rather than cheap.
+    const words2 = (text: string) =>
+      new Set(
+        text
+          .toLowerCase()
+          .split(/[^a-z]+/)
+          .filter((w) => w.length > 5),
+      );
+    for (const u of UPGRADES.filter((x) => x.needsSpend)) {
+      const claim = words2([u.name, u.promise, ...u.delivers].join(" "));
+      const touched = MANIFEST.filter((m) => {
+        const covered = words2(`${m.title} ${m.detail}`);
+        return [...covered].filter((w) => claim.has(w)).length >= 3;
+      });
+      expect(
+        touched.length,
+        `${u.key} reaches into ${touched.length} Manifest items (${touched
+          .map((m) => m.n)
+          .join(", ")}) — that is the desk, not a seat`,
+      ).toBeLessThanOrEqual(2);
     }
   });
 });
@@ -427,21 +499,54 @@ describe("the automation builds", () => {
     }
   });
 
-  it("never attaches one to the ad desk", () => {
-    // A gated action inside Premium AI Ads would be Shield's pre-flight sold
-    // without the ads it exists to clear.
-    for (const u of builds()) expect(u.attachesTo, u.key).not.toBe("premium-ai-ads");
+  it("gates the ad-desk seat that spends, and no other ad-desk seat", () => {
+    // This used to forbid any gated seat on the ad desk at all, which followed
+    // from nothing being sold there. Now Vector is, and it is the one seat on
+    // the board that spends a client's money — so the rule inverts: it must be
+    // gated, and the four ad-desk seats that only report must not be.
+    const adDesk = UPGRADES.filter((u) => u.attachesTo === "premium-ai-ads");
+    for (const u of adDesk) {
+      const shouldGate = u.key === "seat-vector";
+      expect(Boolean(u.build), `${u.key} gate flag`).toBe(shouldGate);
+    }
   });
 
   it("gates exactly the seats that can act, and only those", () => {
     // Tower is the control here: its published refusal is that it does not
     // overrule an operator or change your settings. An operator that cannot
     // act needs no gate, and giving it one would imply it can.
+    // This used to read "everything except Tower", which was true while the
+    // board was four seats and all three of the others acted. On a board of
+    // ten it is wrong in both directions, so the two sets are named.
+    //
+    // Acting means reaching into the outside world on your behalf: spending,
+    // publishing, messaging, moving money. Producing a number, a plan, a brief
+    // or a verdict is not acting, and giving those a gate would imply they can
+    // do something they cannot.
+    const ACTS = ["Closer", "Herald", "Echo", "Vector", "Relay"];
+    const OBSERVES = ["Tower", "Prism", "Ledger", "Atlas", "Shield"];
+    expect([...ACTS, ...OBSERVES].sort()).toEqual(UPGRADES.map((u) => u.name).sort());
+
     const gated = new Set(builds().map((u) => u.name));
-    expect(gated.has("Tower"), "Tower only watches — it must not carry a gate").toBe(false);
-    for (const u of UPGRADES.filter((x) => x.name !== "Tower")) {
-      expect(u.build, `${u.key} acts on your customers and must run behind the gate`).toBe(true);
+    for (const name of ACTS) {
+      expect(gated.has(name), `${name} acts on your behalf and must run behind the gate`).toBe(
+        true,
+      );
     }
+    for (const name of OBSERVES) {
+      expect(gated.has(name), `${name} only reports — a gate would imply it can act`).toBe(false);
+    }
+  });
+
+  it("puts the one operator that spends money behind a manual ceiling", () => {
+    // Vector is the sharpest thing this desk sells. Reallocating inside an
+    // agreed total can run on a timer; raising the total cannot, ever.
+    const vector = upgradeByKey("seat-vector")!;
+    expect(vector.build, "Vector spends your money and must be gated").toBe(true);
+    const raise = ACTION_KINDS.find((k) => k.key === "budget.raise");
+    expect(raise, "there is no gated action for raising the spend ceiling").toBeDefined();
+    expect(raise!.movesMoney).toBe(true);
+    expect(raise!.minimumHold, "raising the ceiling must never run on a timer").toBe("MANUAL");
   });
 
   it("keeps them out of the flagship's lane", () => {
@@ -455,9 +560,15 @@ describe("the automation builds", () => {
     }
   });
 
-  it("sells them together as one crew", () => {
-    const bundle = BUNDLES.find((b) => builds().every((u) => b.members.includes(u.key)));
-    expect(bundle, "no crew carries every acting seat").toBeDefined();
+  it("sells at least one crew made entirely of acting seats", () => {
+    // Was "one crew carries every acting seat", which stopped being possible
+    // when Vector and Relay joined the board — a crew of Closer, Herald, Echo,
+    // Vector and Relay is not a thing anybody wants, it is just the gated ones
+    // in a bag. What still matters is that the gate is a normal part of a crew
+    // rather than an exception bolted onto single seats.
+    const gated = new Set(builds().map((u) => u.key));
+    const crew = BUNDLES.find((b) => b.members.every((m) => gated.has(m)));
+    expect(crew, "no crew is made purely of gated seats").toBeDefined();
   });
 });
 
@@ -684,13 +795,33 @@ describe("the deluxe bundles", () => {
     expect(bundleByKey("nope")).toBeUndefined();
   });
 
-  it("covers every upgrade across the set", () => {
-    // If an upgrade appears in no bundle it is quietly excluded from the
-    // deluxe tier, which is a decision worth making on purpose rather than by
-    // omission.
+  it("never mixes spend-dependent seats into a crew that does not need spend", () => {
+    // This replaced a rule that every seat must appear in some crew. That was
+    // right on a board of four and wrong on a board of ten: the desk now sells
+    // any combination you like, and manufacturing a crew for each leftover
+    // seat would be packaging for the test's benefit rather than the buyer's.
+    //
+    // What matters instead is that a crew never smuggles in an operator that
+    // silently needs an ad budget. A buyer picking "the one that answers the
+    // phone and asks for reviews" must not end up paying for something with
+    // nothing to work on.
+    for (const b of BUNDLES) {
+      const members = bundleMembers(b);
+      const needing = members.filter((m) => m.needsSpend);
+      expect(
+        needing.length === 0 || needing.length === members.length,
+        `${b.key} mixes ${needing.map((m) => m.name).join(", ")} in with seats that need no spend`,
+      ).toBe(true);
+    }
+  });
+
+  it("keeps the ads-free side of the board fully crewed", () => {
+    // The seats anybody can use regardless of budget are the ones that earn a
+    // named crew, and all of them should be reachable inside one.
     const bundled = new Set(BUNDLES.flatMap((b) => b.members));
-    for (const u of UPGRADES) {
-      expect(bundled.has(u.key), `${u.key} is in no bundle`).toBe(true);
+    const alwaysUseful = UPGRADES.filter((u) => !u.needsSpend && u.key !== "seat-relay");
+    for (const u of alwaysUseful) {
+      expect(bundled.has(u.key), `${u.key} needs no ad budget but is in no crew`).toBe(true);
     }
   });
 });
@@ -779,34 +910,58 @@ describe("the Check", () => {
     expect(dear.length).toBe(0);
   });
 
-  it("does not send a lone affordable seat anywhere", () => {
+  it("does not send a lone affordable seat anywhere, except the one it should", () => {
     const wingman = flightPlanByKey("wingman")!;
-    for (const u of UPGRADES.filter((x) => x.price < wingman.monthly && !x.requiresCrew)) {
+    // Relay is the deliberate exception and it costs this desk $850/mo every
+    // time it fires. Wingman is $1,500 for three automations built for you
+    // plus an employee in Slack; Relay alone maintains wiring you already
+    // have. For most people asking for Relay, Wingman is the better buy and
+    // the page says so instead of taking the money.
+    const lone = UPGRADES.filter(
+      (x) => x.price < wingman.monthly && !x.requiresCrew && x.key !== "seat-relay",
+    );
+    for (const u of lone) {
       expect(checkSeats([u.key]).goTo, u.key).toBeUndefined();
     }
+    const relay = checkSeats(["seat-relay"]);
+    expect(relay.goTo?.key, "Relay alone should recommend Wingman").toBe("wingman");
+    expect(relay.tone).toBe("warn");
   });
 
-  it("hands the whole board to Pilot once it closes on Pilot's price", () => {
-    const pilot = flightPlanByKey("pilot")!;
+  it("compares the whole board against Fleet Command, not Pilot", () => {
+    // The board is now all ten operators and $9,985/mo, which is past Pilot's
+    // price — but Pilot is one channel plus the desk, and recommending it to
+    // somebody buying ten operators would be the worst advice on the page.
+    // Fleet Command is the only tier that carries all ten, so that is the
+    // comparison, and it is offered as information rather than a warning:
+    // this desk is genuinely the cheaper way to get the operators.
     const r = checkSeats(ALL);
-    expect(r.total).toBeLessThan(pilot.monthly);
-    // Every seat selected still sits under Pilot, so the verdict is the
-    // near-miss warning rather than the outright redirect — but it must
-    // still name Pilot, because Pilot is genuinely the better buy for anyone
-    // running ads.
-    expect(r.goTo?.key).toBe("pilot");
-    expect(r.tone).not.toBe("ok");
+    expect(r.goTo?.key).toBe("fleet");
+    expect(r.tone).toBe("ok");
+    expect(r.total).toBeLessThan(flightPlanByKey("fleet")!.monthly);
+  });
+
+  it("never routes an ads-free basket to a media tier", () => {
+    // The most expensive mistake this function could make. Somebody buying
+    // only operators that work with no ad budget must never be told to go and
+    // spend $5,000/mo on managed media.
+    const adsFree = UPGRADES.filter((u) => !u.needsSpend).map((u) => u.key);
+    const r = checkSeats(adsFree);
+    expect(r.goTo?.key).not.toBe("pilot");
+    expect(r.total).toBeGreaterThan(flightPlanByKey("pilot")!.monthly * 0.7);
   });
 
   it("redirects outright at or above Pilot's price", () => {
     const pilot = flightPlanByKey("pilot")!;
     // Constructed rather than taken from the catalogue: no real basket
     // reaches Pilot today, and the branch still has to be right when one does.
-    const r = checkSeats(ALL);
-    if (r.total >= pilot.monthly) {
-      expect(r.tone).toBe("elsewhere");
-    }
-    expect(seatTotal(ALL)).toBeLessThan(pilot.monthly);
+    // A basket of spend-dependent seats past Pilot's price is exactly the
+    // case where the desk's version is the better buy, because Pilot wraps the
+    // same operators in the audit, the tracking and a human on the hook.
+    const r = checkSeats(seatsNeedingSpend().map((u) => u.key));
+    expect(r.total).toBeGreaterThanOrEqual(pilot.monthly);
+    expect(r.tone).toBe("elsewhere");
+    expect(r.goTo?.key).toBe("pilot");
   });
 
   it("offers a crew when the basket is exactly one", () => {
@@ -943,22 +1098,21 @@ describe("the receipts are checkable by a stranger", () => {
     expect(copy).not.toMatch(/\b\d{2,}\s+(tests|commits|customers|businesses)\b/i);
   });
 
-  it("keeps the six-of-ten claim tied to the catalogue", () => {
-    // The one hardcoded ratio in the section. If somebody unlocks an operator
-    // the sentence becomes false, so it fails here rather than on the page.
-    const locked = RECEIPTS.find((r) => r.href === "#locked");
-    expect(locked, "the locked-operator receipt has gone missing").toBeDefined();
-    expect(UPGRADES.length + LOCKED.length).toBe(10);
+  it("keeps the needs-a-budget claim tied to the catalogue", () => {
+    // The one hardcoded ratio in the section. If a seat's `needsSpend` flag
+    // changes, the receipt's sentence becomes false — so it fails here rather
+    // than on the page, where only a customer would find it.
+    const receipt = RECEIPTS.find((r) => /ad account|ad budget|running ads/i.test(r.claim));
+    expect(receipt, "the needs-a-budget receipt has gone missing").toBeDefined();
+    expect(UPGRADES.length).toBe(10);
 
-    // Spelled out and read off the catalogue, so unlocking an operator breaks
-    // the test rather than quietly making the sentence false. The phrasing is
-    // free to change; the two numbers in it are not.
+    // Spelled out and read off the catalogue, so flipping a flag breaks the
+    // test rather than quietly making the sentence false. The phrasing is free
+    // to change; the numbers in it are not.
     const word = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
-    const claim = locked!.claim.toLowerCase();
-    expect(claim, `should say ${word[LOCKED.length]} are locked`).toContain(word[LOCKED.length]);
-    expect(claim, `should say ${word[UPGRADES.length]} are for sale`).toContain(
-      word[UPGRADES.length],
-    );
+    const claim = receipt!.claim.toLowerCase();
+    const n = seatsNeedingSpend().length;
+    expect(claim, `should say ${word[n]} need a budget`).toContain(word[n]);
     expect(claim).toContain("ten");
   });
 });

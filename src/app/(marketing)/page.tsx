@@ -5,7 +5,7 @@ import {
   FAIR_QUESTIONS,
   FLIGHT_CHECK,
   FLIGHT_PLANS,
-  LOCKED,
+  seatsNeedingSpend,
   PROOF_POSTURE,
   RECEIPTS,
   RECEIPTS_INTRO,
@@ -32,15 +32,18 @@ import { billingConfigured } from "@/lib/seat-billing";
  *   are $5,000, $12,500 and $30,000 a month, and six of the ten operators only
  *   appear at the top one.
  *
- *   That is not a mistake in their pricing. PHX/GROWTH is a media buying desk;
- *   bundling operators by how much spend they steer is the correct way to sell
- *   a media buying desk. But it produces a specific and quite large group of
- *   people it cannot serve: the business that wants its phone answered and its
- *   map pack defended, and is not going to run $50,000 a month through Meta to
- *   get it.
+ *   That is not a mistake in their pricing. Each of those prices buys a whole
+ *   system — the operators plus the account audit, the tracking rebuild, the
+ *   landing pages, the war room and a named human on the hook. Pricing a
+ *   system as a system is correct. But it produces a specific and quite large
+ *   group of people it cannot serve: the business that wants its phone
+ *   answered, or its budget watched, and cannot write a $5,000 monthly cheque
+ *   to get either.
  *
  *   This is the fourth way to hire them. One operator, one price, month to
- *   month, no ad budget required.
+ *   month. All ten are available singly, because an operator and a system are
+ *   different units of sale and pricing one against the other was never a
+ *   collision — it only looked like one.
  *
  * WHAT REPLACED THE INSTRUMENTS
  *   The previous version of this page was an instrument deck — seven
@@ -52,10 +55,11 @@ import { billingConfigured } from "@/lib/seat-billing";
  *
  *   There is one interactive object now — a ten-card board with a running
  *   total — and the argument lives in the shape of the board rather than in
- *   paragraphs asking to be believed. Four cards have prices. Six have locks
- *   and route to phxgrowth.com. That ratio is the pitch: a page mostly
- *   composed of reasons to buy from somebody else is a page you can believe
- *   about the four things it does sell.
+ *   paragraphs asking to be believed. All ten cards carry a price and any
+ *   combination is buyable; five of them say plainly that they need a live ad
+ *   account first, and the running total raises phxgrowth.com the moment one
+ *   of those is ticked. A board that argues against its own basket is the only
+ *   version of this worth believing.
  *
  * BLUEPRINTS
  *   Server component. `<FlightLine />` is the single client boundary and holds
@@ -147,14 +151,15 @@ export default function Home() {
             </h1>
             <p className="mt-7 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
               {BRAND.parent.name} runs ten named AI operators and hires them out three ways —{" "}
-              {CREW_TIERS.map((t) => t.price.replace("/mo", "")).join(", ")} a month. Four of the
-              ten do work that never touches an ad account. Those four you can hire one at a time,
-              from {formatCurrency(from)}/mo, with no media budget behind them.
+              {CREW_TIERS.map((t) => t.price.replace("/mo", "")).join(", ")} a month. Every one of
+              those prices buys a whole system. Here you hire the operator on its own, from{" "}
+              {formatCurrency(from)}/mo — one, or three, or all ten, in whatever combination you
+              actually need.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a href="#seats" className="pill-primary">
-                See the four seats <ArrowRight className="h-4 w-4" />
+                Build your crew <ArrowRight className="h-4 w-4" />
               </a>
               <a href={`${BRAND.parent.url}/agents`} className="pill-ghost">
                 The full crew of ten <ArrowUpRight className="h-4 w-4" />
@@ -167,21 +172,21 @@ export default function Home() {
             <div className="mt-14 grid max-w-4xl gap-px overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.05] sm:grid-cols-3">
               {[
                 {
-                  k: "All four seats, together",
+                  k: "All ten seats, together",
                   v: `${formatCurrency(allSeats)}/mo`,
                   n: "Month to month. No setup fee, no performance fee.",
                   tone: "text-cyan",
                 },
                 {
-                  k: "The only other place to get them",
+                  k: "The only other place to get all ten",
                   v: fleet.price,
-                  n: `${fleet.name}, ${fleet.fee.replace("+ ", "plus ")}.`,
+                  n: `${fleet.name}, ${fleet.fee.replace("+ ", "plus ")}. That gap is the desk.`,
                   tone: "text-gold",
                 },
                 {
-                  k: "Operators we won't sell alone",
-                  v: `${LOCKED.length} of 10`,
-                  n: "Each one says why, and links to the tier that opens it.",
+                  k: "Operators that need an ad budget",
+                  v: `${seatsNeedingSpend().length} of 10`,
+                  n: "Sold anyway — but each one says so before you buy it.",
                   tone: "text-muted-foreground",
                 },
               ].map((cell) => (

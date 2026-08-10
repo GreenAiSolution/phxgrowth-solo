@@ -67,7 +67,12 @@ export type GateState =
  * An operator that cannot act needs no gate, and giving it one would imply it
  * can.
  */
-export type BuildKey = "seat-closer" | "seat-herald" | "seat-echo";
+export type BuildKey =
+  | "seat-closer"
+  | "seat-herald"
+  | "seat-echo"
+  | "seat-vector"
+  | "seat-relay";
 
 export interface ActionKind {
   key: string;
@@ -178,6 +183,65 @@ export const ACTION_KINDS: ActionKind[] = [
     movesMoney: false,
     minimumHold: "MANUAL",
     expiresAfterHours: 72,
+  },
+
+  // ---- Vector: the only operator here that spends your money ----
+  //
+  // Vector is sold on a fifteen-minute optimisation loop, so gating every
+  // decision behind a manual release would not be caution, it would be a
+  // product that does not work. The line is drawn at the ceiling instead:
+  // moving money *inside* a total you already agreed to is the job, and
+  // raising that total is a decision that stays yours.
+  {
+    key: "budget.reallocate",
+    build: "seat-vector",
+    label: "Shift budget between campaigns",
+    // The daily total is unchanged — this moves money you have already
+    // committed from a worse place to a better one.
+    movesMoney: false,
+    minimumHold: "TIMED",
+    reviewWindowMinutes: 60,
+    expiresAfterHours: 6,
+  },
+  {
+    key: "budget.raise",
+    build: "seat-vector",
+    label: "Raise the daily spend ceiling",
+    // The one Vector action that costs you more than you agreed to. There is
+    // no version of this that runs on a timer.
+    movesMoney: true,
+    minimumHold: "MANUAL",
+    expiresAfterHours: 24,
+  },
+  {
+    key: "campaign.pause",
+    build: "seat-vector",
+    label: "Stop a campaign spending",
+    // Held briefly rather than manually on purpose: this one saves money, and
+    // a long hold on a stop order is the expensive direction to be careful in.
+    movesMoney: false,
+    minimumHold: "TIMED",
+    reviewWindowMinutes: 15,
+    expiresAfterHours: 6,
+  },
+
+  // ---- Relay: the wiring, and whatever runs through it ----
+  {
+    key: "automation.payment",
+    build: "seat-relay",
+    label: "Run an automation step that moves money",
+    movesMoney: true,
+    minimumHold: "MANUAL",
+    expiresAfterHours: 48,
+  },
+  {
+    key: "automation.message",
+    build: "seat-relay",
+    label: "Run an automation step that messages a customer",
+    movesMoney: false,
+    minimumHold: "TIMED",
+    reviewWindowMinutes: 30,
+    expiresAfterHours: 24,
   },
 ];
 
