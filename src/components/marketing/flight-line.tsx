@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Check, Lock, Minus, Plus, TriangleAlert } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, Minus, Plus, TriangleAlert } from "lucide-react";
 import {
   BUNDLES,
+  FLIGHT_PLANS,
   seatsNeedingSpend,
   UPGRADES,
   checkSeats,
-  flightPlanByKey,
+  seatTotal,
   type Upgrade,
 } from "@/lib/upgrades";
 import { BRAND } from "@/lib/brand";
@@ -28,17 +29,18 @@ import { pulse } from "@/components/marketing/pulse";
  *   buying from it should be small and quick.
  *
  *   So there is one interactive object now, and it is a ten-card board with a
- *   running total. Four cards have prices. Six have locks, and each lock names
- *   the reason and links to the tier at phxgrowth.com that opens it — which
- *   means the majority of this page is, deliberately, an advertisement for the
- *   parent.
+ *   running total. All ten carry a price and any combination is buyable. What
+ *   keeps it from being a straight pitch is that the same total then draws
+ *   phxgrowth.com's own ladder underneath it, to scale, and says when to go up
+ *   it — so a good deal of this page is, deliberately, an advertisement for
+ *   the parent.
  *
  * WHY THE TOTAL CAN TELL YOU TO LEAVE
  *   `checkSeats()` runs on every change and its verdict is rendered as
  *   prominently as the number itself. Two of its outcomes route the visitor to
- *   phxgrowth.com — one when a single seat is dearer than Wingman, one when a
- *   basket closes on Pilot — and one refuses to endorse a basket at all until
- *   Tower has a crew to watch.
+ *   phxgrowth.com — one when Relay alone is beaten by Wingman, one when a
+ *   basket carrying spend-dependent seats closes on Pilot — and one refuses to
+ *   endorse a basket at all until Tower has a crew to watch.
  *
  *   A store that never argues against itself is read as a store that cannot.
  *   The old page understood this and spent a whole instrument on it; this is
@@ -56,11 +58,6 @@ import { pulse } from "@/components/marketing/pulse";
 
 /** Seats in display order: dearest first, so every later price reads against it. */
 const SEATS = [...UPGRADES].sort((a, b) => b.price - a.price);
-
-/** The parent tiers a locked card can point at. */
-function unlockTier(key: string) {
-  return flightPlanByKey(key);
-}
 
 /* ------------------------------------------------------------------ */
 /*  A seat you can hire                                               */
@@ -107,6 +104,20 @@ function SeatCard({
       </div>
 
       <p className="mt-4 text-[0.95rem] leading-relaxed text-muted-foreground">{seat.promise}</p>
+
+      {/* The warning that costs us sales, printed above the price rather than
+          buried in the small print. Five of the ten only work if there is a
+          budget in flight; a buyer who finds that out in month two is a refund
+          and a story, and both cost more than the seat. */}
+      {seat.needsSpend ? (
+        <p className="mt-4 flex items-start gap-2.5 rounded-lg border border-gold/25 bg-gold/[0.06] px-3.5 py-2.5 text-[0.82rem] leading-relaxed text-gold/90">
+          <TriangleAlert className="mt-[0.15rem] h-3.5 w-3.5 shrink-0" />
+          <span>
+            Needs a live ad account. With nothing in flight this seat has nothing to work on —
+            buy it only if you are already running ads.
+          </span>
+        </p>
+      ) : null}
 
       {/* The spec strip. Shift comes first because the parent's homepage runs a
           section called "The shift board" — a seat that doesn't state when it
@@ -328,6 +339,148 @@ function TheCheck({
 }
 
 /* ------------------------------------------------------------------ */
+/*  The ladder — phxgrowth.com's own pricing, rendered live            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * THE HOUSE UPSTAIRS
+ *
+ * DIRECTION
+ *   Until now the parent existed on this page only as prose and outbound
+ *   links. A visitor was repeatedly told there is a bigger operation above
+ *   this one, at bigger prices, and never shown it — which asks them to take
+ *   on trust the one comparison the whole property rests on.
+ *
+ *   So their ladder is drawn here, to scale, with this desk as the bottom
+ *   rung. The bars are linear against Fleet Command's $30,000, which makes
+ *   Wingman five percent of the width of the top tier and a single seat a
+ *   sliver. That is not flattering to us and it is the point: the size
+ *   difference between an operator and a system is the argument, and a
+ *   drawing of it is more honest than a paragraph claiming it.
+ *
+ *   It is live. Tick seats on the board above and the bottom bar grows, the
+ *   marker moves, and the gap to the next rung is recalculated — so the
+ *   moment buying upstairs becomes the better idea, the visitor watches it
+ *   happen rather than being told.
+ */
+function TheLadder({ picked }: { picked: string[] }) {
+  const total = seatTotal(picked);
+  const top = FLIGHT_PLANS[FLIGHT_PLANS.length - 1];
+  // The first rung whose price is above where the basket currently sits.
+  const next = FLIGHT_PLANS.find((p) => p.monthly > total);
+  // Linear, against the dearest tier. A minimum width keeps the smallest bar
+  // legible without misrepresenting it — the number is always printed beside.
+  const width = (cents: number) => `${Math.max(1.5, (cents / top.monthly) * 100)}%`;
+
+  return (
+    <section id="ladder" className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
+      <div className="container">
+        <Reveal>
+          <p className="eyebrow text-gold">The house upstairs</p>
+          <h2 className="mt-3 max-w-3xl font-heading text-3xl font-semibold tracking-tight sm:text-5xl">
+            This is the small door. Here is the whole building.
+          </h2>
+          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            {BRAND.parent.name} sells four systems above this desk, and they cost what systems
+            cost. Drawn to scale against {top.name} so you can see the difference rather than take
+            our word for it — and it moves as you tick seats, because the moment buying upstairs
+            is the better idea you should be able to watch it happen.
+          </p>
+        </Reveal>
+
+        <Reveal delay={90}>
+          <div className="mt-12 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.012]">
+            {/* Rung zero — this desk. */}
+            <div className="border-b border-white/[0.06] bg-cyan/[0.04] p-6 sm:p-7">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <p className="hud-label text-cyan">This desk · one operator at a time</p>
+                <p className="hud-value font-heading text-2xl font-semibold tabular-nums text-cyan">
+                  {picked.length === 0 ? "—" : `${formatCurrency(total)}/mo`}
+                </p>
+              </div>
+              <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-white/[0.05]">
+                <div
+                  className="h-full rounded-full bg-cyan transition-[width] duration-500 ease-out"
+                  style={{ width: picked.length === 0 ? "0%" : width(total) }}
+                />
+              </div>
+              <p className="mt-3 text-[0.85rem] leading-relaxed text-muted-foreground">
+                {picked.length === 0
+                  ? "Nothing ticked yet. Choose seats on the board above and this bar grows against the tiers below it."
+                  : next
+                    ? `${picked.length} seat${picked.length === 1 ? "" : "s"}. Another ${formatCurrency(next.monthly - total)}/mo and you are at ${next.name} — which is ${next.promise.charAt(0).toLowerCase()}${next.promise.slice(1)}.`
+                    : `${picked.length} seats, and past every tier on the ladder. Nothing upstairs is cheaper than this.`}
+              </p>
+            </div>
+
+            {/* Their four, cheapest first. */}
+            {FLIGHT_PLANS.map((plan) => (
+              <a
+                key={plan.key}
+                href={`${BRAND.parent.url}/pricing`}
+                onClick={() => pulse("routed_out", `ladder:${plan.key}`)}
+                className={cn(
+                  "group block border-b border-white/[0.06] p-6 transition-colors last:border-b-0 hover:bg-white/[0.025] sm:p-7",
+                  next?.key === plan.key && picked.length > 0 && "bg-gold/[0.05]",
+                )}
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <p className="hud-label flex items-center gap-2 text-gold/85">
+                    {plan.code}
+                    <span className="font-sans normal-case tracking-normal text-muted-foreground">
+                      · {plan.operators === 10 ? "all ten operators" : `${plan.operators === 1 ? "one operator" : `${plan.operators} operators`}`}
+                    </span>
+                    {next?.key === plan.key && picked.length > 0 ? (
+                      <span className="rounded-full border border-gold/40 px-2 py-0.5 text-[0.6rem] tracking-widest text-gold">
+                        NEXT RUNG
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="hud-value font-heading text-2xl font-semibold tabular-nums text-foreground">
+                    {plan.price}
+                  </p>
+                </div>
+                <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-white/[0.05]">
+                  <div
+                    className="h-full rounded-full bg-gold/70 transition-colors group-hover:bg-gold"
+                    style={{ width: width(plan.monthly) }}
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                  <p className="text-[0.85rem] leading-relaxed text-muted-foreground">
+                    {plan.promise.replace(/\.$/, "")}. {plan.ceilingNote.replace(/\.$/, "")}.
+                  </p>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-[0.8rem] tabular-nums text-muted-foreground">
+                    {plan.fee}
+                    <ArrowUpRight className="h-3.5 w-3.5 text-cyan opacity-0 transition-opacity group-hover:opacity-100" />
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal delay={140}>
+          <p className="mt-6 max-w-3xl text-[0.9rem] leading-relaxed text-muted-foreground">
+            Every number above is {BRAND.parent.name}&rsquo;s own, taken from their pricing page
+            rather than characterised by us — which makes it the one part of this site you can
+            check against a source we do not control.{" "}
+            <a
+              href={`${BRAND.parent.url}/pricing`}
+              onClick={() => pulse("routed_out", "ladder:verify")}
+              className="text-cyan underline decoration-cyan/30 underline-offset-4 hover:decoration-cyan"
+            >
+              Go and hold it against theirs
+            </a>
+            .
+          </p>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  The board                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -355,13 +508,13 @@ export function FlightLine({ canCheckout }: { canCheckout: boolean }) {
           <Reveal>
             <p className="eyebrow text-cyan">The flight line</p>
             <h2 className="mt-3 max-w-3xl font-heading text-3xl font-semibold tracking-tight sm:text-5xl">
-              Four operators you can hire on their own.
+              All ten operators. Hired one at a time.
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Every one of these does real work with no ad budget behind it. That is the whole
-              test, and it is the reason these four are here and the other six are not. Prices are
-              monthly, month to month, with no setup fee and no performance fee — nothing on this
-              page manages ad spend, so nothing on it takes a percentage.
+              Take one, take three, take the board. Prices are monthly, month to month, no setup
+              fee and no performance fee — a seat is a flat number whatever your budget does.{" "}
+              {seatsNeedingSpend().length} of the ten only work if you are already running ads;
+              those say so on their own cards rather than letting you find out afterwards.
             </p>
           </Reveal>
 
@@ -460,6 +613,8 @@ export function FlightLine({ canCheckout }: { canCheckout: boolean }) {
           </Reveal>
         </div>
       </section>
+
+      <TheLadder picked={picked} />
 
       {/* ── Why a seat costs less than a flight plan ───────────────── */}
       <section id="systems" className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
