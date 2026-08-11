@@ -44,7 +44,7 @@ This needs a real terminal — it can't read a hidden password through a pipe.
 
 Open Terminal (Cmd+Space, type "Terminal") and run:
 
-    cd ~/Addtophxgrowth && ./scripts/connect-stripe.sh
+    cd ~/phxgrowth-solo && ./scripts/connect-stripe.sh
 
 Nothing you type there is recorded anywhere, which is the other reason to
 run it from there rather than through a chat window.

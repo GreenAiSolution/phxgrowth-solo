@@ -488,7 +488,7 @@ export const RECEIPTS: Receipt[] = [
     claim:
       "This site is open source. The pricing logic, the rule that loses the sale and the test that fails the build if a fabricated percentage appears in this copy are all readable without asking us for anything.",
     check: "Read the test that enforces it, then read the rule it guards.",
-    href: "https://github.com/GreenAiSolution/Addtophxgrowth/blob/solo-single-seat-desk/src/lib/upgrades.test.ts",
+    href: "https://github.com/GreenAiSolution/phxgrowth-solo/blob/main/src/lib/upgrades.test.ts",
     external: true,
   },
 ];

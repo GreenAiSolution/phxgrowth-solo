@@ -3,12 +3,12 @@
 Everything you need to take this site and fold it into another project.
 
 **Live:** https://phxgrowth-solo.vercel.app
-**Branch:** `solo-single-seat-desk` (not merged to `main` — `main` is still the previous version of this site)
+**Branch:** `main` (not merged to `main` — `main` is still the previous version of this site)
 
 ```bash
-git clone https://github.com/GreenAiSolution/Addtophxgrowth.git
+git clone https://github.com/GreenAiSolution/phxgrowth-solo.git
 cd Addtophxgrowth
-git checkout solo-single-seat-desk
+git checkout main
 ```
 
 ---
