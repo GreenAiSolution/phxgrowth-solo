@@ -285,13 +285,16 @@ function TheCheck({
               Reserve {picked.length === 1 ? "this seat" : `these ${picked.length} seats`}
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="#enquiry"
+            {/* The human path now lives on the reservation, with the basket
+                already attached — so this carries the seats across rather
+                than dropping them at a form that starts empty. */}
+            <Link
+              href={`${reserveHref}#enquiry`}
               onClick={() => pulse("enquiry_started", "check")}
               className="pill-ghost text-sm"
             >
               Or talk to a human first
-            </a>
+            </Link>
             <button type="button" onClick={onClear} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
               Clear
             </button>

@@ -12,6 +12,7 @@ import { dutyRows, parseSeatKeys, priceBasket } from "@/lib/reserve";
 import { billingConfigured } from "@/lib/seat-billing";
 import { formatCurrency } from "@/lib/utils";
 import { Wordmark } from "@/components/marketing/site-chrome";
+import { Enquiry } from "@/components/marketing/enquiry";
 import { Reveal } from "@/components/marketing/fx";
 import { DutyBoard, TwelveMonths } from "@/components/marketing/reserve-charts";
 import { ReserveActions } from "@/components/marketing/reserve-actions";
@@ -120,18 +121,26 @@ export default async function Reserve({
       </header>
 
       {keys.length === 0 ? (
-        <main className="container py-24">
-          <div className="mx-auto max-w-xl text-center">
-            <h1 className="font-heading text-3xl font-semibold tracking-tight">
-              There is nothing in this reservation.
+        /* An empty reservation is not an error page. It is where anybody who
+           wanted the enquiry form rather than the board now lands, so it
+           carries the full form with its own tick-list. */
+        <main className="container py-20 sm:py-24">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="eyebrow text-cyan">Reserve a seat</p>
+            <h1 className="mt-3 font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+              Nothing in this reservation yet.
             </h1>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              The link had no seats in it — or the ones it named have since been retired. Pick from
-              the board and the total, the shifts and the year all draw themselves as you go.
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
+              Tick what you want below and send it to a human — or{" "}
+              <Link href="/#seats" className="text-cyan underline decoration-cyan/30 underline-offset-4 hover:decoration-cyan">
+                build it on the board
+              </Link>{" "}
+              instead, where the same basket gets itemised, drawn and costed for a year before you
+              decide anything.
             </p>
-            <Link href="/#seats" className="pill-primary mt-8 text-sm">
-              Go to the flight line
-            </Link>
+          </div>
+          <div id="enquiry" className="mt-14 scroll-mt-24">
+            <Enquiry />
           </div>
         </main>
       ) : (
@@ -369,6 +378,34 @@ export default async function Reserve({
                   ) : (
                     <ReserveActions keys={keys} canCheckout={canCheckout} total={basket.total} />
                   )}
+                </div>
+              </Reveal>
+            </div>
+          </section>
+
+          {/* ── The human path ─────────────────────────────────────── */}
+          <section id="enquiry" className="scroll-mt-24 border-t border-white/[0.06] py-14 sm:py-20">
+            <div className="container">
+              <Reveal>
+                <div className="mx-auto max-w-2xl text-center">
+                  <p className="eyebrow text-cyan">Or send it to a human</p>
+                  <h2 className="mt-3 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+                    Same basket, no card.
+                  </h2>
+                  <p className="mt-5 leading-relaxed text-muted-foreground">
+                    This quotes the {basket.seats.length === 1 ? "seat" : `${basket.seats.length} seats`}{" "}
+                    above at {formatCurrency(basket.total)}/mo and goes straight to a person, who
+                    replies the same day with the scope and the number in writing. Nothing is
+                    charged, and if a flight plan at {BRAND.parent.name} would serve you better,
+                    that is what you will be told.
+                  </p>
+                </div>
+              </Reveal>
+              <Reveal delay={70}>
+                <div className="mt-10">
+                  {/* Read-only: the basket is the page above, and a second
+                      selector here could disagree with it. */}
+                  <Enquiry preselect={keys} showPicker={false} />
                 </div>
               </Reveal>
             </div>

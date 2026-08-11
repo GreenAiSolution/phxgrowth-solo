@@ -1017,7 +1017,14 @@ describe("the Check's refusals are actually refusals", () => {
 });
 
 describe("the receipts are checkable by a stranger", () => {
-  const anchors = new Set(["#seats", "#check", "#locked", "#enquiry"]);
+  /**
+   * The sections that actually exist on the home page today. It has drifted
+   * twice: `#locked` went when all ten seats went on sale, and `#enquiry`
+   * went when the form moved to /reserve — and in both cases this list kept
+   * blessing a dead anchor, which is the one thing it is here to stop.
+   * A receipt that scrolls nowhere is worse than no receipt.
+   */
+  const anchors = new Set(["#seats", "#check", "#ladder", "#systems"]);
 
   it("gives every receipt somewhere to go", () => {
     // A receipt without a destination is an assertion wearing a receipt's

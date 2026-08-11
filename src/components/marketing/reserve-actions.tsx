@@ -78,7 +78,7 @@ export function ReserveActions({
           </button>
         ) : null}
         <a
-          href="/#enquiry"
+          href="#enquiry"
           onClick={() => pulse("enquiry_started", "reserve")}
           className={canCheckout ? "pill-ghost text-sm" : "pill-primary text-sm"}
         >

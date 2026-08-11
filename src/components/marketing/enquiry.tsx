@@ -49,7 +49,21 @@ interface Fallback {
   body: string;
 }
 
-export function Enquiry({ preselect = [] }: { preselect?: string[] }) {
+export function Enquiry({
+  preselect = [],
+  showPicker = true,
+}: {
+  preselect?: string[];
+  /**
+   * Whether to draw the tick-list of every upgrade.
+   *
+   * False on the reservation, where the basket is the entire page above this
+   * form and a second control that could silently disagree with it is a bug
+   * waiting to be reported as a pricing lie. There the selection is read-only
+   * and the way to change it is to go back to the board.
+   */
+  showPicker?: boolean;
+}) {
   const [picked, setPicked] = React.useState<string[]>(preselect);
   const [state, setState] = React.useState<"idle" | "loading" | "done" | "error">("idle");
   const [error, setError] = React.useState<string | null>(null);
@@ -191,8 +205,15 @@ export function Enquiry({ preselect = [] }: { preselect?: string[] }) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-start">
+    <div
+      className={cn(
+        showPicker
+          ? "grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-start"
+          : "mx-auto max-w-xl",
+      )}
+    >
       {/* Pick */}
+      {showPicker ? (
       <div className="space-y-7">
         {PARENT_SERVICES.map((service) => (
           <div key={service.key}>
@@ -212,9 +233,13 @@ export function Enquiry({ preselect = [] }: { preselect?: string[] }) {
           </div>
         ))}
       </div>
+      ) : null}
 
       {/* Send */}
-      <form onSubmit={onSubmit} className="phx-card space-y-3 p-6 lg:sticky lg:top-24">
+      <form
+        onSubmit={onSubmit}
+        className={cn("phx-card space-y-3 p-6", showPicker && "lg:sticky lg:top-24")}
+      >
         <div className="border-b border-white/[0.07] pb-4">
           <div className="eyebrow text-muted-foreground">Your selection</div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
@@ -234,12 +259,21 @@ export function Enquiry({ preselect = [] }: { preselect?: string[] }) {
               </span>
             </div>
           )}
+          {/* With no tick-list on the page, the names have to be printed —
+              a bare total is not a selection anybody can check. */}
+          {!showPicker && chosen.length > 0 ? (
+            <p className="mt-2 text-[0.78rem] leading-relaxed text-foreground/85">
+              {chosen.map((u) => u.name).join(", ")}
+            </p>
+          ) : null}
           <p className="mt-2 text-[0.7rem] leading-relaxed text-muted-foreground">
             {picked.length === 0
-              ? "Nothing picked yet — tick what you want on the left."
+              ? showPicker
+                ? "Nothing picked yet — tick what you want on the left."
+                : "Nothing in this reservation yet."
               : bundle
-                ? `Those exact ${bundle.members.length} are a bundle, so you are quoted the bundle. This is an enquiry, not a payment.`
-                : `${picked.length} upgrade${picked.length === 1 ? "" : "s"} selected. This is an enquiry, not a payment.`}
+                ? `Those exact ${bundle.members.length} are a crew, so you are quoted the crew price. This is an enquiry, not a payment.`
+                : `${picked.length} seat${picked.length === 1 ? "" : "s"} selected. This is an enquiry, not a payment.`}
           </p>
         </div>
 

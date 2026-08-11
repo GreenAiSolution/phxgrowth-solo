@@ -15,7 +15,6 @@ import {
 } from "@/lib/upgrades";
 import { formatCurrency } from "@/lib/utils";
 import { env } from "@/lib/env";
-import { Enquiry } from "@/components/marketing/enquiry";
 import { Pulse } from "@/components/marketing/pulse";
 import { Wordmark } from "@/components/marketing/site-chrome";
 import { SystemField } from "@/components/marketing/system-field";
@@ -385,22 +384,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Enquiry ────────────────────────────────────────────────────── */}
-      <section id="enquiry" className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
+      {/* ── The way out of the page ────────────────────────────────────
+          The enquiry form used to sit here, as a second selector with its
+          own tick-list and its own total. That was one basket too many: a
+          visitor could tick three seats on the board and a different three
+          down here, and the page would show two honest numbers that
+          disagreed with each other. It now lives on /reserve, where the
+          basket is already decided and the form quotes that basket — so
+          there is one selection on this property and one number for it. */}
+      <section className="scroll-mt-24 border-t border-white/[0.06] py-20 sm:py-28">
         <div className="container">
           <Reveal>
-            <div className="mx-auto max-w-2xl">
-              <p className="eyebrow text-cyan">Reserve a seat</p>
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="eyebrow text-cyan">Rather talk to a human?</p>
               <h2 className="mt-3 font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-                Tell us which operator, and when you want it on shift.
+                Pick your seats, then send the basket to a person.
               </h2>
               <p className="mt-5 leading-relaxed text-muted-foreground">
-                No call required to get a price — every price is on this page. This goes straight to
-                a human, and if a flight plan at {BRAND.parent.name} would serve you better,
-                that&rsquo;s what you&rsquo;ll be told.
+                No call required to get a price — every price is on this page. Build a basket on the
+                board above and the next screen itemises it, draws what you are buying, and hands
+                you the choice: pay by card, or send the same basket to a human. If a flight plan at{" "}
+                {BRAND.parent.name} would serve you better, that&rsquo;s what you&rsquo;ll be told.
               </p>
-              <div className="mt-9">
-                <Enquiry />
+              <div className="mt-9 flex flex-wrap justify-center gap-3">
+                <a href="#seats" className="pill-primary">
+                  Go to the board <ArrowRight className="h-4 w-4" />
+                </a>
+                <Link href="/reserve" className="pill-ghost">
+                  Or send an enquiry now
+                </Link>
               </div>
             </div>
           </Reveal>
@@ -413,7 +425,8 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
             <a href="#seats" className="transition-colors hover:text-foreground">The seats</a>
             <a href="#check" className="transition-colors hover:text-foreground">The check</a>
-            <a href="#locked" className="transition-colors hover:text-foreground">The other six</a>
+            <a href="#ladder" className="transition-colors hover:text-foreground">The house upstairs</a>
+            <Link href="/reserve" className="transition-colors hover:text-foreground">Send an enquiry</Link>
             <Link href="/upgrades" className="transition-colors hover:text-foreground">All prices</Link>
             <a href={`mailto:${BRAND.parent.email}`} className="transition-colors hover:text-foreground">
               {BRAND.parent.email}

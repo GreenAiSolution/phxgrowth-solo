@@ -147,9 +147,12 @@ export default function UpgradesPage() {
               <span className="sm:hidden">Tools</span>
               <span className="hidden sm:inline">Try the tools</span>
             </Link>
-            <a href="#enquiry" className="pill-primary px-4 py-2.5 text-sm sm:px-5">
+            {/* Was `#enquiry`, which has never been a section on this page —
+                the button did nothing. It now goes where the form actually
+                lives. */}
+            <Link href="/reserve" className="pill-primary px-4 py-2.5 text-sm sm:px-5">
               Get a price
-            </a>
+            </Link>
           </div>
         </div>
       </header>

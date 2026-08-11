@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BUNDLES, UPGRADES, checkSeats, upgradeByKey } from "@/lib/upgrades";
 import {
@@ -156,6 +157,51 @@ describe("the twelve-month line", () => {
     expect(series[11]).toBe(59000 * 12);
     const steps = series.slice(1).map((v, i) => v - series[i]);
     expect(new Set(steps).size).toBe(1);
+  });
+});
+
+/**
+ * THE ENQUIRY LIVES IN ONE PLACE
+ *
+ * The form used to sit on the home page as a second selector with its own
+ * tick-list and its own total, which meant a visitor could tick three seats on
+ * the board and a different three in the form and be shown two honest numbers
+ * that disagreed. It now lives only on /reserve, quoting the basket that is
+ * already itemised above it.
+ *
+ * Moving it left two dead `#enquiry` links behind — the sort of thing nobody
+ * notices because a dead anchor fails silently, by doing nothing at all. So
+ * this reads the pages and checks every in-page link actually lands.
+ */
+describe("where the enquiry form lives", () => {
+  const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
+  const home = read("app/(marketing)/page.tsx");
+  const board = read("components/marketing/flight-line.tsx");
+  const reserve = read("app/reserve/page.tsx");
+
+  it("is mounted on the reservation and nowhere else", () => {
+    expect(reserve).toMatch(/from "@\/components\/marketing\/enquiry"/);
+    expect(home).not.toMatch(/from "@\/components\/marketing\/enquiry"/);
+  });
+
+  it("is read-only where a basket already exists", () => {
+    // Two selectors for one purchase is how a page ends up quoting a number
+    // it is not going to charge.
+    expect(reserve).toMatch(/showPicker=\{false\}/);
+  });
+
+  it("leaves no in-page link pointing at a section that is gone", () => {
+    const ids = new Set(
+      [...home.matchAll(/id="([a-z-]+)"/g), ...board.matchAll(/id="([a-z-]+)"/g)].map(
+        (m) => m[1],
+      ),
+    );
+    const anchors = [...home.matchAll(/href="#([a-z-]+)"/g), ...board.matchAll(/href="#([a-z-]+)"/g)]
+      .map((m) => m[1]);
+    expect(anchors.length).toBeGreaterThan(0);
+    for (const a of anchors) {
+      expect(ids.has(a), `the home page links to #${a}, which is not a section on it`).toBe(true);
+    }
   });
 });
 
