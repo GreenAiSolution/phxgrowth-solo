@@ -262,7 +262,7 @@ export default function UpgradesPage() {
 
                   <div className="mt-auto border-t border-white/[0.06] pt-4">
                     <p className="eyebrow text-[0.56rem] text-gold">
-                      What PLUS adds ({attached.length})
+                      What SOLO adds ({attached.length})
                     </p>
                     <ul className="mt-2.5 space-y-1.5">
                       {attached.map((u) => (

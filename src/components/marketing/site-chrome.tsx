@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * ALIGNMENT
  *   The mark is phxgrowth.com's, not a variant of it: a diamond in a glowing
  *   gradient disc, then `PHX` in the cyan→magenta gradient and `/GROWTH` solid
- *   white, heavily letter-spaced. The only addition is a gold PLUS chip, using
+ *   white, heavily letter-spaced. The only addition is a gold SOLO chip, using
  *   the parent's own apex accent — a separate logo here would read as a
  *   separate company, which is exactly the confusion this property must avoid.
  *

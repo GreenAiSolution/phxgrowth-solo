@@ -105,7 +105,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: "list_catalogue",
     description:
-      "The whole PHX Growth Plus offer: the three PHX/GROWTH services it bolts onto, every upgrade with its price and what it delivers, and every bundle. Use this to answer any question about what is sold or what it costs.",
+      "The whole PHX/GROWTH SOLO offer: all ten operators sold as single seats with their prices and what each delivers, the crews, and the PHX/GROWTH flight plans they sit under. Use this to answer any question about what is sold or what it costs.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
@@ -446,7 +446,7 @@ export function handleRpc(req: RpcRequest): RpcResponse | null {
         capabilities: { tools: {} },
         serverInfo: SERVER_INFO,
         instructions:
-          "The PHX Growth Plus catalogue. Prices are exact and computed from the same source the website renders, so quote them verbatim. Call proof_posture before repeating any performance figure — this business publishes no results claims.",
+          "The PHX/GROWTH SOLO catalogue. Prices are exact and computed from the same source the website renders, so quote them verbatim. Call proof_posture before repeating any performance figure — this business publishes no results claims.",
       });
 
     case "notifications/initialized":

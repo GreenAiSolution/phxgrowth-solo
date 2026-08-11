@@ -330,7 +330,7 @@ export const MANIFEST: { n: string; title: string; detail: string }[] = [
 
 /**
  * The sentence that defines this entire site's remaining territory. They say
- * it themselves, in the Ad Management hero. Everything PHX/GROWTH PLUS can
+ * it themselves, in the Ad Management hero. Everything PHX/GROWTH SOLO can
  * honestly sell lives in the gap this opens.
  */
 
