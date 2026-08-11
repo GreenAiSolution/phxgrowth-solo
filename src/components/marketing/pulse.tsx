@@ -21,7 +21,15 @@ export type PulseEvent =
   /** A seat ticked or unticked on the flight line. */
   | "seat_toggled"
   /** The Check sent them to phxgrowth.com instead. The number that matters. */
-  | "routed_out";
+  | "routed_out"
+  /**
+   * A reservation was opened — the review screen between the board and Stripe.
+   * Paired with `checkout_started` it is the only way to tell whether that
+   * screen is saving people from bad baskets or just losing them.
+   */
+  | "reserve_viewed"
+  /** Committed from the reservation: the moment Stripe is asked for a session. */
+  | "checkout_started";
 
 export function pulse(event: PulseEvent, detail?: string) {
   try {

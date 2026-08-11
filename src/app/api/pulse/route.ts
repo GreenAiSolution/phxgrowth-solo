@@ -29,7 +29,17 @@ const UPGRADE_KEYS = UPGRADES.map((u) => u.key);
 
 const Body = z.object({
   /** What happened. Closed set — an open string would become a junk drawer. */
-  event: z.enum(["view", "depth", "gap_finder", "upgrade_added", "enquiry_started", "seat_toggled", "routed_out"]),
+  event: z.enum([
+    "view",
+    "depth",
+    "gap_finder",
+    "upgrade_added",
+    "enquiry_started",
+    "seat_toggled",
+    "routed_out",
+    "reserve_viewed",
+    "checkout_started",
+  ]),
   /** Scroll depth bucket, or the upgrade key, depending on the event. */
   detail: z.string().max(64).optional(),
   /** Where they came from, as the browser reports it. */

@@ -193,35 +193,18 @@ function TheCheck({
 }) {
   const result = React.useMemo(() => checkSeats(picked), [picked]);
   const tone = result.tone;
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
 
   /**
-   * Only seat keys are posted. The server resolves them to Stripe Price IDs
-   * and Stripe reads the amount off its own object, so the number rendered
-   * above is a display of the catalogue rather than an input to a charge.
+   * Where the button goes now.
+   *
+   * It used to post straight to `/api/checkout/seat` and follow Stripe's URL,
+   * which meant the screen after this one was a card form — no itemisation, no
+   * restatement of the refusals each card carries, and no picture of what the
+   * basket does all day. `/reserve` is that missing screen, and it recomputes
+   * every number from the catalogue, so the keys in this URL are a request for
+   * a quote rather than a quote.
    */
-  async function onBuy() {
-    setBusy(true);
-    setError(null);
-    pulse("upgrade_added", picked[0]);
-    try {
-      const res = await fetch("/api/checkout/seat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keys: picked }),
-      });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (data.url) {
-        window.location.href = data.url;
-        return;
-      }
-      setError(data.error ?? "Could not open checkout. Send an enquiry and we'll sort it.");
-    } catch {
-      setError("Could not reach checkout. Send an enquiry and we'll sort it.");
-    }
-    setBusy(false);
-  }
+  const reserveHref = `/reserve?seats=${encodeURIComponent(picked.join(","))}`;
 
   return (
     <div
@@ -294,31 +277,20 @@ function TheCheck({
       {picked.length > 0 && !result.blocked ? (
         <div className="mt-7 border-t border-white/[0.07] pt-6">
           <div className="flex flex-wrap items-center gap-3">
-            {canCheckout ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onBuy}
-                className="pill-primary text-sm disabled:cursor-wait disabled:opacity-70"
-              >
-                {busy ? (
-                  "Opening Stripe…"
-                ) : (
-                  <>
-                    Start {picked.length === 1 ? "this seat" : `these ${picked.length} seats`}
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            ) : null}
+            <Link
+              href={reserveHref}
+              onClick={() => pulse("upgrade_added", picked[0])}
+              className="pill-primary text-sm"
+            >
+              Reserve {picked.length === 1 ? "this seat" : `these ${picked.length} seats`}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
             <a
               href="#enquiry"
               onClick={() => pulse("enquiry_started", "check")}
-              className={canCheckout ? "pill-ghost text-sm" : "pill-primary text-sm"}
+              className="pill-ghost text-sm"
             >
-              {canCheckout
-                ? "Or talk to a human first"
-                : `Reserve ${picked.length === 1 ? "this seat" : `these ${picked.length} seats`}`}
+              Or talk to a human first
             </a>
             <button type="button" onClick={onClear} className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
               Clear
@@ -326,12 +298,9 @@ function TheCheck({
           </div>
           <p className="mt-3.5 text-[0.8rem] leading-relaxed text-muted-foreground">
             {canCheckout
-              ? "Card on the next screen, handled by Stripe — we never see the number. Month to month, cancel any time, no setup fee."
-              : "No payment taken here. This sends your basket to a human, who comes back with a scope and an invoice."}
+              ? "Next screen itemises it, draws the shifts you are buying and costs a year of it. Nothing is charged there — the card comes after, handled by Stripe."
+              : "Next screen itemises it and draws what you are buying. No payment is taken; it sends your basket to a human, who comes back with a scope and an invoice."}
           </p>
-          {error ? (
-            <p className="mt-3 text-[0.85rem] leading-relaxed text-gold">{error}</p>
-          ) : null}
         </div>
       ) : null}
     </div>
